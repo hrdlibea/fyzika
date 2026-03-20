@@ -3,17 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <title>Fyzika – materiály</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    margin: 0;
+    padding: 40px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.container {
+    max-width: 800px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.card a {
+    display: inline-block;
+    margin-top: 10px;
+    text-decoration: none;
+    color: white;
+    background: #4a6cf7;
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+
+.card a:hover {
+    background: #3a56d4;
+}
+</style>
+
 </head>
 
 <body>
 
-<h1>Fyzika – materiály</h1>
+<div class="container">
 
-<h2>📘 Fyzika pro sekundu</h2>
-<a href="sekunda/hydro.html">Otevřít materiály</a>
+<h1>📚 Fyzika – materiály</h1>
 
-<h2>📙 Fyzika pro kvintu</h2>
-<a href="kvinta/prezentace.pdf">Otevřít prezentaci</a>
+<div class="card">
+    <h2>📘 Fyzika pro sekundu</h2>
+    <p>Materiály k tématům jako tlak, hydrostatika apod.</p>
+    <a href="sekunda/hydro.html">Otevřít</a>
+</div>
+
+<div class="card">
+    <h2>📙 Fyzika pro kvintu</h2>
+    <p>Prezentace a pokročilejší materiály.</p>
+    <a href="kvinta/prezentace.pdf">Otevřít prezentaci</a>
+</div>
+
+</div>
 
 </body>
 </html>
