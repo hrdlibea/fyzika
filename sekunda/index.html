@@ -3,19 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <title>Sekunda</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+body {
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #1e2a78, #6c63ff);
+    color: white;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 60px 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.card {
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 15px;
+    transition: 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    background: rgba(255,255,255,0.2);
+}
+
+.button {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 15px;
+    background: white;
+    color: #3a3ad4;
+    border-radius: 8px;
+    text-decoration: none;
+}
+
+.back {
+    display: inline-block;
+    margin-top: 40px;
+    color: white;
+    text-decoration: none;
+}
+</style>
+
 </head>
 
 <body>
 
+<div class="container">
+
 <h1>📘 Fyzika – sekunda</h1>
 
-<ul>
-  <li>
-    <a href="hydrostatika/index.html">Hydrostatika</a>
-  </li>
-</ul>
+<div class="card">
+    <h2>🌊 Hydrostatika</h2>
+    <p>Tlak, hustota, Pascalův zákon.</p>
+    <a class="button" href="hydrostatika/index.html">Otevřít téma</a>
+</div>
 
-<a href="../index.html">← zpět</a>
+<a class="back" href="../index.html">← zpět na hlavní stránku</a>
+
+</div>
 
 </body>
 </html>
