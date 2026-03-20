@@ -22,6 +22,10 @@ button {
     margin: 5px;
     padding: 10px;
 }
+
+.controls {
+    margin-top: 10px;
+}
 </style>
 </head>
 
@@ -31,11 +35,17 @@ button {
 
 <canvas id="canvas" width="1200" height="520"></canvas>
 
-<div>
-<button onclick="paused=!paused">Pause</button>
-<button onclick="reset()">Reset</button>
-<button onclick="speed*=1.2">Speed +</button>
-<button onclick="speed*=0.8">Speed -</button>
+<div class="controls">
+    <button onclick="paused=!paused">Pause</button>
+    <button onclick="reset()">Reset</button>
+    <button onclick="speed*=1.2">Speed +</button>
+    <button onclick="speed*=0.8">Speed -</button>
+
+    <br><br>
+
+    <label>Velikost otvoru (control rod):</label><br>
+    <input type="range" min="40" max="300" value="160" id="slider">
+    <span id="sliderValue">160</span>
 </div>
 
 <script>
@@ -48,10 +58,19 @@ let paused=false;
 let speed=1;
 let detected=0;
 
+let holeSize = 160;
+
+const slider = document.getElementById("slider");
+const sliderValue = document.getElementById("sliderValue");
+
+slider.oninput = function(){
+    holeSize = parseInt(this.value);
+    sliderValue.innerText = this.value;
+}
+
 const FISSION_PROB=0.7;
 const detectorX=1150;
 const rodX=1050;
-const holeSize=160;
 
 class Atom{
     constructor(x,y){
@@ -137,7 +156,7 @@ function update(){
             continue;
         }
 
-        // tyče
+        // regulační tyče
         if(n.x>rodX){
             if(!(260-holeSize/2 < n.y && n.y < 260+holeSize/2)){
                 continue;
@@ -241,9 +260,11 @@ function draw(){
         ctx.stroke();
     });
 
+    // UI
     ctx.fillStyle="white";
     ctx.fillText("Neutrony: "+neutrons.length+" | Zachyceno: "+detected,20,20);
-    if(paused) ctx.fillText("PAUZA",20,40);
+    ctx.fillText("Otvor tyče: "+holeSize,20,40);
+    if(paused) ctx.fillText("PAUZA",20,60);
 }
 
 function loop(){
