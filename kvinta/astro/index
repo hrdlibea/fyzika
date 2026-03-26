@@ -56,13 +56,13 @@ body {
 
 <div class="container">
 
-<h1>⚛️ Jaderná fyzika</h1>
+<h1>⚛️ Astrofyzika</h1>
+
 
 <div class="card">
-    <h2>📄 Prezentace – </h2>
-    <a class="button" href="Jppchain.html">Otevřít prezentaci</a>
+    <h2>🔥 Neřízená reakce</h2>
+    <a class="button" href="ppchain.html">Spustit</a>
 </div>
-
 
 
 <a class="back" href="../index.html">← zpět na kvintu</a>
