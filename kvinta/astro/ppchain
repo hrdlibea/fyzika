@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proton-protonový cyklus (p-p I)</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f172a; /* Tmavý vesmírný design */
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Hlavní aréna pro částice */
+        #arena {
+            position: relative;
+            width: 100%;
+            height: 65vh;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            border-bottom: 2px solid #334155;
+            overflow: hidden;
+        }
+
+        /* Dok pro vedlejší produkty */
+        #dock {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 50%;
+            height: 80px;
+            border: 2px dashed #475569;
+            border-radius: 10px;
+            background-color: rgba(30, 41, 59, 0.5);
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+
+        #dock::before {
+            content: "Vedlejší produkty reakce";
+            position: absolute;
+            top: -25px;
+            left: 0;
+            font-size: 14px;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+
+        /* Stylování částic - VŠECHNY ANIMACE JSOU ZDE (3s plynulý přesun) */
+        .particle {
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            transition: all 3s ease-in-out;
+            transform: translate(-50%, -50%); /* Centrování na souřadnicích */
+            z-index: 10;
+        }
+
+        .proton { background-color: #ef4444; border: 2px solid #b91c1c; }
+        .neutron { background-color: #3b82f6; border: 2px solid #1d4ed8; }
+        .positron { background-color: #22c55e; border: 2px solid #15803d; width: 35px; height: 35px; font-size: 14px;}
+        .neutrino { background-color: #6b7280; border: 2px solid #4b5563; width: 35px; height: 35px; font-size: 14px;}
+        .gamma { background-color: #eab308; border: 2px solid #a16207; color: black; width: 35px; height: 35px; font-size: 14px;}
+
+        /* Spodní kontrolní panel */
+        #panel {
+            height: 35vh;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .top-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        button {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover { background-color: #2563eb; }
+        button:disabled { background-color: #475569; cursor: not-allowed; }
+
+        .energy-counter {
+            font-size: 24px;
+            font-weight: bold;
+            color: #facc15;
+            background: #1e293b;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+
+        .info-box {
+            text-align: center;
+            font-size: 18px;
+            color: #cbd5e1;
+            max-width: 800px;
+        }
+
+        #equation {
+            margin-top: 15px;
+            font-size: 24px;
+            background-color: black;
+            padding: 15px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="arena">
+        <div id="dock"></div>
+        <div id="p1" class="particle proton" style="top: 20%; left: 30%;">p+</div>
+        <div id="p2" class="particle proton" style="top: 40%; left: 30%;">p+</div>
+        <div id="p3" class="particle proton" style="top: 20%; left: 70%;">p+</div>
+        <div id="p4" class="particle proton" style="top: 40%; left: 70%;">p+</div>
+        <div id="p5" class="particle proton" style="top: 80%; left: 40%;">p+</div>
+        <div id="p6" class="particle proton" style="top: 80%; left: 60%;">p+</div>
+    </div>
+
+    <div id="panel">
+        <div class="top-panel">
+            <button id="nextBtn">Další fáze</button>
+            <div class="energy-counter">Uvolněná energie: <span id="energy">0.00</span> MeV</div>
+        </div>
+        <div class="info-box">
+            <div id="desc">Výchozí stav: V jádře hvězdy se nachází 6 volných protonů.</div>
+            <div id="equation"></div>
+        </div>
+    </div>
+
+    <script>
+        let phase = 0;
+        let isAnimating = false;
+        let dockItemsCount = 0; // Pomáhá s pozicováním částic v doku
+
+        const btn = document.getElementById('nextBtn');
+        const descEl = document.getElementById('desc');
+        const eqEl = document.getElementById('equation');
+        const energyEl = document.getElementById('energy');
+        const arena = document.getElementById('arena');
+
+        // Texty, rovnice (v LaTeXu) a energie pro jednotlivé fáze
+        const phasesData = [
+            {
+                desc: "Výchozí stav: 6 volných protonů.",
+                eq: "6 \\times {}^{1}_{1}\\text{H}",
+                energy: "0.00"
+            },
+            {
+                desc: "Fáze 1: Dva páry protonů fúzují na dvě jádra deuteria. Uvolní se pozitrony a neutrina.",
+                eq: "2 \\times ({}^{1}_{1}\\text{H} + {}^{1}_{1}\\text{H} \\rightarrow {}^{2}_{1}\\text{H} + e^{+} + \\nu_{e})",
+                energy: "2.88"
+            },
+            {
+                desc: "Fáze 2: Ke každému deuteriu se připojí další proton. Vznikají jádra hélia-3 a uvolňuje se gama záření.",
+                eq: "2 \\times ({}^{2}_{1}\\text{H} + {}^{1}_{1}\\text{H} \\rightarrow {}^{3}_{2}\\text{He} + \\gamma)",
+                energy: "13.86"
+            },
+            {
+                desc: "Fáze 3: Dvě jádra hélia-3 se srazí. Vznikne stabilní hélium-4 a uvolní se dva protony pro další cyklus.",
+                eq: "{}^{3}_{2}\\text{He} + {}^{3}_{2}\\text{He} \\rightarrow {}^{4}_{2}\\text{He} + 2 {}^{1}_{1}\\text{H}",
+                energy: "26.72"
+            }
+        ];
+
+        // Vykreslí počáteční rovnici pomocí KaTeX
+        katex.render(phasesData[0].eq, eqEl, { throwOnError: false, displayMode: true });
+
+        // Pomocná funkce pro přesun existující částice
+        function move(id, topPercent, leftPercent) {
+            const el = document.getElementById(id);
+            el.style.top = topPercent + '%';
+            el.style.left = leftPercent + '%';
+        }
+
+        // Pomocná funkce pro vytvoření nové částice
+        function spawn(type, text, top, left) {
+            const el = document.createElement('div');
+            el.className = `particle ${type}`;
+            el.innerText = text;
+            el.style.top = top + '%';
+            el.style.left = left + '%';
+            arena.appendChild(el);
+            return el;
+        }
+
+        // Funkce pro odeslání částice do doku
+        function sendToDock(el) {
+            el.style.top = 'calc(100% - 40px)'; // Spodek arény
+            el.style.left = `calc(50% + 20px + ${dockItemsCount * 45}px)`; // Skládání vedle sebe
+            dockItemsCount++;
+        }
+
+        // Hlavní spouštěč fází
+        btn.addEventListener('click', () => {
+            if (isAnimating) return;
+            isAnimating = true;
+            btn.disabled = true;
+
+            if (phase === 0) {
+                // FÁZE 1: Vznik Deuteria
+                // 1. Pomalé přiblížení
+                move('p1', 30, 28);
+                move('p2', 30, 32);
+                move('p3', 30, 68);
+                move('p4', 30, 72);
+
+                // 2. Po 3 sekundách (kdy dojedou k sobě) dojde k přeměně
+                setTimeout(() => {
+                    document.getElementById('p2').className = 'particle neutron';
+                    document.getElementById('p2').innerText = 'n';
+                    document.getElementById('p4').className = 'particle neutron';
+                    document.getElementById('p4').innerText = 'n';
+
+                    // Vznik vedlejších produktů přesně na místě srážky
+                    let e1 = spawn('positron', 'e+', 30, 30);
+                    let v1 = spawn('neutrino', 'ν', 30, 30);
+                    let e2 = spawn('positron', 'e+', 30, 70);
+                    let v2 = spawn('neutrino', 'ν', 30, 70);
+
+                    // Necháme DOM 50ms aby částice vykreslil, pak je pošleme do doku
+                    setTimeout(() => {
+                        sendToDock(e1); sendToDock(v1);
+                        sendToDock(e2); sendToDock(v2);
+                        
+                        finishPhase(1);
+                    }, 50);
+                }, 3000);
+
+            } else if (phase === 1) {
+                // FÁZE 2: Vznik Hélia-3
+                move('p5', 30, 30); // Připojí se k prvnímu deuteriu
+                move('p6', 30, 70); // Připojí se k druhému deuteriu
+
+                setTimeout(() => {
+                    let g1 = spawn('gamma', 'γ', 30, 30);
+                    let g2 = spawn('gamma', 'γ', 30, 70);
+
+                    setTimeout(() => {
+                        sendToDock(g1); sendToDock(g2);
+                        finishPhase(2);
+                    }, 50);
+                }, 3000);
+
+            } else if (phase === 2) {
+                // FÁZE 3: Vznik Hélia-4
+                // Obě He-3 jádra se přesunou do středu
+                move('p1', 45, 48); move('p2', 45, 52); move('p5', 40, 50); 
+                move('p3', 55, 48); move('p4', 55, 52); move('p6', 60, 50);
+
+                setTimeout(() => {
+                    // Srazí se do stabilního čtverce He-4 (2 protony, 2 neutrony) ve středu
+                    move('p1', 48, 48); move('p2', 48, 52); // p1 je proton, p2 je neutron
+                    move('p3', 52, 52); move('p4', 52, 48); // p3 je proton, p4 je neutron
+                    
+                    // Přebytečné 2 protony (p5 a p6) odletí pryč
+                    move('p5', 20, 20);
+                    move('p6', 20, 80);
+
+                    finishPhase(3);
+                    btn.innerText = "Konec simulace";
+                }, 3000);
+            }
+        });
+
+        function finishPhase(newPhase) {
+            phase = newPhase;
+            descEl.innerText = phasesData[phase].desc;
+            energyEl.innerText = phasesData[phase].energy;
+            katex.render(phasesData[phase].eq, eqEl, { throwOnError: false, displayMode: true });
+            
+            isAnimating = false;
+            if (phase < 3) btn.disabled = false;
+        }
+    </script>
+</body>
+</html>
