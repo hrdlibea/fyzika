@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
-<title>Kvinta</title>
+<title>Jaderná fyzika</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
@@ -10,7 +10,7 @@
 body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
-    background: linear-gradient(135deg, #2c1a4d, #6c63ff);
+    background: linear-gradient(135deg, #1b2735, #090a0f);
     color: white;
 }
 
@@ -38,7 +38,7 @@ body {
     margin-top: 10px;
     padding: 10px 15px;
     background: white;
-    color: #3a3ad4;
+    color: #1c3d5a;
     border-radius: 8px;
     text-decoration: none;
 }
@@ -56,15 +56,16 @@ body {
 
 <div class="container">
 
-<h1>📙 Fyzika – kvarta</h1>
+<h1>⚛️ Jaderná fyzika</h1>
 
 <div class="card">
-    <h2>⚛️ Astrofyzika</h2>
-    <p>RAstrofyzikaaa.</p>
-    <a class="button" href="astro/index.html">Otevřít téma</a>
+    <h2>📄 Prezentace – </h2>
+    <a class="button" href="Jppchain.html">Otevřít prezentaci</a>
 </div>
 
-<a class="back" href="../index.html">← zpět na hlavní stránku</a>
+
+
+<a class="back" href="../index.html">← zpět na kvintu</a>
 
 </div>
 
