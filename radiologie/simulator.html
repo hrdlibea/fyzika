@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profi Simulátor Radioterapie Prostaty</title>
+    <style>
+        :root {
+            --bg-color: #020617;
+            --panel-bg: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --accent-hover: #38bdf8;
+            
+            --color-prostate: #22c55e;
+            --color-bladder: #eab308;
+            --color-rectum: #f97316;
+            --color-femur: #cbd5e1;
+            --color-skin: #f472b6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 380px;
+            background-color: var(--panel-bg);
+            border-right: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            box-shadow: 10px 0 20px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #1e293b;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .header h1 { font-size: 1.3rem; color: var(--accent); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;}
+        
+        #score-display {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin: 10px 0;
+            text-shadow: 0 0 20px rgba(14, 165, 233, 0.4);
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+
+        .score-text { font-size: 0.85rem; color: var(--text-muted); min-height: 35px; text-transform: uppercase; letter-spacing: 0.5px;}
+
+        .controls { padding: 15px 20px; border-bottom: 1px solid #1e293b; }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            background-color: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+            margin-bottom: 10px;
+        }
+        select:hover, select:focus { border-color: var(--accent); }
+
+        #mission-desc {
+            font-size: 0.8rem;
+            color: #38bdf8;
+            line-height: 1.4;
+            background: rgba(14, 165, 233, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #0ea5e9;
+        }
+
+        #sliders-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px 20px;
+        }
+
+        .slider-group {
+            background: rgba(30, 41, 59, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid transparent;
+            display: none; 
+            transition: border-color 0.2s;
+        }
+        .slider-group:hover { border-color: #334155; }
+        .slider-group.active { display: block; }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #0f172a;
+            border-top: 1px solid #1e293b;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background-color: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover { background-color: var(--accent-hover); box-shadow: 0 0 15px rgba(14, 165, 233, 0.4); transform: translateY(-1px); }
+        button:active { transform: translateY(1px); }
+        button.btn-outline { background-color: transparent; border: 1px solid #475569; color: var(--text-main); }
+        button.btn-outline:hover { background-color: #ef4444; color: white; box-shadow: none; border-color: #ef4444; }
+
+        #main-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+        }
+
+        canvas#simCanvas {
+            border-radius: 50%;
+            box-shadow: 0 0 80px rgba(0,0,0,0.8), inset 0 0 50px rgba(255,255,255,0.05);
+            max-height: 95vh;
+            max-width: 95vw;
+        }
+
+        #stats-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            bottom: 20px;
+            background-color: rgba(15, 23, 42, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            backdrop-filter: blur(10px);
+            width: 340px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .stat-row { margin-bottom: 12px; }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .bar-bg {
+            height: 8px;
+            background-color: #334155;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+        }
+
+        .limit-marker {
+            position: absolute;
+            top: 0; bottom: 0;
+            width: 2px;
+            background-color: rgba(255,255,255,0.8);
+            z-index: 2;
+        }
+
+        .dvh-container {
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #334155;
+        }
+
+        .dvh-title { font-size: 0.9rem; color: #f8fafc; margin-bottom: 5px; font-weight: 600; text-align: center; }
+
+        .dvh-wrapper {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            background: #020617;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        canvas#dvhCanvas { width: 100%; height: 100%; display: block; }
+
+        .axis-label-x { position: absolute; bottom: -20px; left: 0; width: 100%; text-align: center; font-size: 0.7rem; color: #94a3b8; }
+        .axis-label-y { position: absolute; top: 0; left: -25px; height: 100%; display: flex; align-items: center; writing-mode: vertical-rl; transform: rotate(180deg); font-size: 0.7rem; color: #94a3b8; }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            font-size: 0.8rem;
+            color: #f8fafc;
+            backdrop-filter: blur(5px);
+        }
+        .legend-bar {
+            width: 200px;
+            height: 10px;
+            background: linear-gradient(90deg, rgba(0,0,255,0.8) 0%, rgba(0,255,255,0.8) 40%, rgba(255,255,0,0.8) 70%, rgba(255,0,0,0.8) 95%, rgba(255,0,255,0.9) 100%);
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .legend-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8;}
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(8px); }
+        .modal-content { background-color: var(--panel-bg); margin: 5vh auto; padding: 25px; border: 1px solid #334155; width: 90%; max-width: 900px; border-radius: 12px; position: relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; }
+        .close-btn { position: absolute; top: 15px; right: 25px; color: var(--text-muted); font-size: 32px; font-weight: bold; cursor: pointer; transition: color 0.2s; line-height: 1; }
+        .close-btn:hover { color: white; }
+        .expand-btn { position: absolute; top: 5px; right: 5px; background: rgba(30, 41, 59, 0.9); border: 1px solid #475569; color: var(--text-main); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; z-index: 10; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
+        .expand-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
+        .large-dvh-wrapper { width: 100%; height: 500px; background: #020617; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-top: 15px; position: relative; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="header">
+            <h1>Plánování RT Prostaty</h1>
+            <div class="score-text">Klinické Skóre Plánu</div>
+            <div id="score-display">0</div>
+            <div id="score-msg" class="score-text">Sledujte integrální Heatmapu na plátně.</div>
+        </div>
+
+        <div class="controls" style="background: #1e293b;">
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px;">Klinický scénář (Mise):</label>
+            <select id="level-select">
+                <option value="1">Mise 1: Standardní pacient</option>
+                <option value="2">Mise 2: Riziko - Blízký konečník</option>
+                <option value="3">Mise 3: Komplikace - Titanová kyčel</option>
+            </select>
+            <div id="mission-desc">Popis mise se načítá...</div>
+        </div>
+
+        <div class="controls" style="padding-top: 0; border-top: none;">
+            <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 5px; margin-top: 10px;">Technika:</label>
+            <select id="technique-select">
+                <option value="appa">Technika: AP/PA (Zepředu a Zezadu)</option>
+                <option value="box">Technika: 4-Pole (Box ze 4 stran)</option>
+                <option value="vmat">Technika: VMAT (Rotující Gantry)</option>
+            </select>
+        </div>
+
+        <div id="sliders-container"></div>
+
+        <div class="btn-row">
+            <button class="btn-outline" onclick="resetAll()">Vynulovat</button>
+            <button onclick="openPwdModal()">Optimální VMAT 🔒</button>
+        </div>
+    </div>
+
+    <div id="main-area">
+        <canvas id="simCanvas" width="800" height="800"></canvas>
+        
+        <div class="legend">
+            <strong>Dose Color Wash (Integrální dávka)</strong>
+            <div class="legend-bar"></div>
+            <div class="legend-labels">
+                <span>0%</span>
+                <span>30%</span>
+                <span>60%</span>
+                <span>100%</span>
+                <span style="color:#f0f">>105% Hotspot</span>
+            </div>
+        </div>
+
+        <div id="stats-container">
+            <h3 style="margin-bottom: 15px; font-size: 0.9rem; color: #f8fafc; border-bottom: 1px solid #334155; padding-bottom: 8px;">Dávka v orgánech (Max. zasažení / Limit)</h3>
+            
+            <div class="stat-row">
+                <div class="stat-header" style="color: var(--color-prostate);">
+                    <span>Prostata (Cíl: 100 %)</span>
+                    <span id="val-prostate">0 %</span>
+                </div>
+                <div class="bar-bg">
+                    <div id="bar-prostate" class="bar-fill" style="width: 0%; background-color: var(--color-prostate);"></div>
+                    <div class="limit-marker" style="left: 66.6%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-header" id="header-skin" style="color: var(--color-skin);">
+                    <span>Kůže (Max 50 %)</span>
+                    <span id="val-skin">0 %</span>
+                </div>
+                <div class="bar-bg">
+                    <div id="bar-skin" class="bar-fill" style="width: 0%; background-color: var(--color-skin);"></div>
+                    <div class="limit-marker" id="limit-skin" style="left: 33.3%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-header" style="color: var(--color-bladder);">
+                    <span>Měchýř (Max 65 %)</span>
+                    <span id="val-bladder">0 %</span>
+                </div>
+                <div class="bar-bg">
+                    <div id="bar-bladder" class="bar-fill" style="width: 0%; background-color: var(--color-bladder);"></div>
+                    <div class="limit-marker" style="left: 43.3%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-header" id="header-rectum" style="color: var(--color-rectum);">
+                    <span>Konečník (Max 50 %)</span>
+                    <span id="val-rectum">0 %</span>
+                </div>
+                <div class="bar-bg">
+                    <div id="bar-rectum" class="bar-fill" style="width: 0%; background-color: var(--color-rectum);"></div>
+                    <div class="limit-marker" style="left: 33.3%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-header" id="header-l_femur" style="color: var(--color-femur);">
+                    <span>L. Femur (Max 50 %)</span>
+                    <span id="val-l_femur">0 %</span>
+                </div>
+                <div class="bar-bg">
+                    <div id="bar-l_femur" class="bar-fill" style="width: 0%; background-color: var(--color-femur);"></div>
+                    <div class="limit-marker" style="left: 33.3%;"></div>
+                </div>
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-header" id="header-r_femur" style="color: var(--color-femur);">
+                    <span>P. Femur (Max 50 %)</span>
+                    <span id="val-r_femur">0 %</span>
+                </div>
+                <div class="bar-bg">
+                    <div id="bar-r_femur" class="bar-fill" style="width: 0%; background-color: var(--color-femur);"></div>
+                    <div class="limit-marker" style="left: 33.3%;"></div>
+                </div>
+            </div>
+
+            <div class="dvh-container">
+                <div class="dvh-title">Dose-Volume Histogram (DVH)</div>
+                <div class="dvh-wrapper">
+                    <button class="expand-btn" onclick="openDvhModal()">Zvětšit</button>
+                    <div class="axis-label-y">Objem (%)</div>
+                    <canvas id="dvhCanvas" width="300" height="150"></canvas>
+                    <div class="axis-label-x">Dávka (%)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dvhModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeDvhModal()">&times;</span>
+            <h2 style="color: var(--text-main); font-size: 1.5rem; margin-bottom: 5px;">Detailní DVH Křivky</h2>
+            <div class="large-dvh-wrapper">
+                <div class="axis-label-y" style="left: -20px; font-size: 0.85rem;">Objem orgánu (%)</div>
+                <canvas id="dvhCanvasLarge" width="850" height="480" style="width: 100%; height: 100%; display: block;"></canvas>
+                <div class="axis-label-x" style="bottom: -25px; font-size: 0.85rem;">Dávka záření (%)</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="pwdModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="close-btn" onclick="document.getElementById('pwdModal').style.display='none'">&times;</span>
+            <h2 style="color: var(--text-main); font-size: 1.3rem; margin-bottom: 10px;">Učitelský přístup</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 15px;">Pro spuštění automatického řešení AI zadejte heslo.</p>
+            <input type="password" id="teacher-pwd" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #1e293b; color: white; border: 1px solid #334155; border-radius: 6px; outline: none;" placeholder="Zadejte heslo...">
+            <div id="pwd-error" style="color: #ef4444; font-size: 0.8rem; margin-bottom: 10px; display: none;">Nesprávné heslo! Studenti, zpátky k posuvníkům!</div>
+            <button onclick="checkPwd()" style="width: 100%;">Odemknout řešení</button>
+        </div>
+    </div>
+
+<script>
+    // --- Geometrie a Fyzika ---
+    const SAD = 450; 
+    const PENUMBRA = 6; // Ostřejší paprsky (simulace moderního MLC kolimátoru)
+    const BODY_A = 220; 
+    const BODY_B = 160; 
+    const DEFAULT_FIELD_SIZE = 40;
+
+    const BEAMS = [
+        { id: 0, angle: 270, label: "Přední (AP)", activeIn: ['appa', 'box', 'vmat'] },
+        { id: 1, angle: 300, label: "Přední pravý šikmý", activeIn: ['vmat'] },
+        { id: 2, angle: 330, label: "Pravý šikmý", activeIn: ['vmat'] },
+        { id: 3, angle: 0,   label: "Pravý (Lat)", activeIn: ['box', 'vmat'] },
+        { id: 4, angle: 30,  label: "Zadní pravý šikmý", activeIn: ['vmat'] },
+        { id: 5, angle: 60,  label: "Zadní šikmý", activeIn: ['vmat'] },
+        { id: 6, angle: 90,  label: "Zadní (PA)", activeIn: ['appa', 'box', 'vmat'] },
+        { id: 7, angle: 120, label: "Zadní levý šikmý", activeIn: ['vmat'] },
+        { id: 8, angle: 150, label: "Levý šikmý", activeIn: ['vmat'] },
+        { id: 9, angle: 180, label: "Levý (Lat)", activeIn: ['box', 'vmat'] },
+        { id: 10, angle: 210, label: "Přední levý šikmý", activeIn: ['vmat'] },
+        { id: 11, angle: 240, label: "Přední levý", activeIn: ['vmat'] }
+    ];
+
+    let beamWeights = new Array(12).fill(0);
+    let currentMode = 'appa';
+    let currentLevel = 1;
+    let latestDvhData = null;
+
+    let paths = {};
+    let ORGANS = {};
+    let PHYSICS_ORGANS = [];
+
+    const ANATOMY_TEMPLATES = {
+        1: {
+            desc: "Standardní pacient. Rozložte dávku (VMAT), abyste kůži nespálili a prostata byla krásně červená (100%).",
+            prostate: { cy: 0 },
+            rectum: { cy: 42 },
+            l_femur: { density: 1.8, name: "L. Femur", limit: 50, isTitan: false },
+            r_femur: { density: 1.8, name: "P. Femur", limit: 50 }
+        },
+        2: {
+            desc: "Zvýšené riziko! Konečník je anatomicky velmi blízko prostaty. Úplně se vyhněte předním a zadním paprskům (AP, PA), pálte z boků.",
+            prostate: { cy: -5 },
+            rectum: { cy: 26 },
+            l_femur: { density: 1.8, name: "L. Femur", limit: 50, isTitan: false },
+            r_femur: { density: 1.8, name: "P. Femur", limit: 50 }
+        },
+        3: {
+            desc: "Titanová kyčel! Kov pohlcuje záření. Ozařujte výhradně z pravé strany. Fyzik schválil vyšší toleranci kůže (55 %) pro záchranu pacienta.",
+            prostate: { cy: 0 },
+            rectum: { cy: 42 },
+            l_femur: { density: 4.5, name: "L. Femur (TITAN)", limit: 50, isTitan: true }, 
+            r_femur: { density: 1.8, name: "P. Femur", limit: 50 }
+        }
+    };
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    
+    const GRID_STEP = 5; 
+    const GRID_W = Math.ceil(canvas.width / GRID_STEP);
+    const GRID_H = Math.ceil(canvas.height / GRID_STEP);
+    const heatCanvas = document.createElement('canvas');
+    heatCanvas.width = GRID_W;
+    heatCanvas.height = GRID_H;
+    const heatCtx = heatCanvas.getContext('2d');
+
+    const dvhCanvas = document.getElementById('dvhCanvas');
+    const dvhCtx = dvhCanvas.getContext('2d');
+    const testCanvas = document.createElement('canvas');
+    const tCtx = testCanvas.getContext('2d');
+
+    function loadLevel(levelId) {
+        currentLevel = parseInt(levelId);
+        let tpl = ANATOMY_TEMPLATES[currentLevel];
+        
+        document.getElementById('mission-desc').innerText = tpl.desc;
+
+        paths = {
+            prostate: new Path2D(),
+            bladder: new Path2D(),
+            rectum: new Path2D(),
+            l_femur: new Path2D(),
+            r_femur: new Path2D(),
+            skin: new Path2D() 
+        };
+
+        paths.prostate.ellipse(0, tpl.prostate.cy, 22, 17, 0, 0, Math.PI*2);
+        paths.bladder.moveTo(0, -85);
+        paths.bladder.bezierCurveTo(35, -85, 45, -55, 25, -35);
+        paths.bladder.bezierCurveTo(15, -25, -15, -25, -25, -35);
+        paths.bladder.bezierCurveTo(-45, -55, -35, -85, 0, -85);
+        paths.rectum.ellipse(0, tpl.rectum.cy, 15, 12, 0, 0, Math.PI*2);
+        paths.l_femur.arc(-100, 5, 22, 0, Math.PI*2);
+        paths.l_femur.ellipse(-120, 12, 12, 20, Math.PI/4, 0, Math.PI*2);
+        paths.r_femur.arc(100, 5, 22, 0, Math.PI*2);
+        paths.r_femur.ellipse(120, 12, 12, 20, -Math.PI/4, 0, Math.PI*2);
+        paths.skin.ellipse(0, 0, BODY_A, BODY_B, 0, 0, Math.PI*2);
+
+        // Dynamický limit pro kůži podle klinické praxe (pokud musíme ozařovat jen z půlky těla, limit se zvyšuje)
+        let skinLimit = (currentLevel === 3) ? 55 : 50;
+
+        ORGANS = {
+            prostate: { limit: 100, name: "Prostata", path: paths.prostate, bounds: {minX: -25, maxX: 25, minY: -30, maxY: 30}, color: '#22c55e' },
+            skin: { limit: skinLimit, name: "Kůže", path: null, bounds: null, color: '#f472b6' }, 
+            bladder: { limit: 65, name: "Měchýř", path: paths.bladder, bounds: {minX: -45, maxX: 45, minY: -90, maxY: -20}, color: '#eab308' },
+            rectum: { limit: 50, name: "Konečník", path: paths.rectum, bounds: {minX: -20, maxX: 20, minY: tpl.rectum.cy-15, maxY: tpl.rectum.cy+15}, color: '#f97316' },
+            l_femur: { limit: 50, name: tpl.l_femur.name, path: paths.l_femur, bounds: {minX: -135, maxX: -75, minY: -20, maxY: 35}, color: tpl.l_femur.isTitan ? '#f1f5f9' : '#cbd5e1', isTitan: tpl.l_femur.isTitan },
+            r_femur: { limit: 50, name: tpl.r_femur.name, path: paths.r_femur, bounds: {minX: 75, maxX: 135, minY: -20, maxY: 35}, color: '#cbd5e1', isTitan: false }
+        };
+
+        PHYSICS_ORGANS = [
+            { cx: -100, cy: 5, r: 22, density: tpl.l_femur.density }, 
+            { cx: 100, cy: 5, r: 22, density: tpl.r_femur.density },
+            { cx: 0, cy: tpl.rectum.cy, r: 14, density: 0.5 }
+        ];
+
+        // Vygenerování testovacích bodů pro rychlé DVH
+        for (let key in ORGANS) {
+            let org = ORGANS[key];
+            org.pts = [];
+            if (key === 'skin') {
+                for(let x = -BODY_A; x <= BODY_A; x += 6) {
+                    for(let y = -BODY_B; y <= BODY_B; y += 6) {
+                        let outer = (x*x)/(BODY_A*BODY_A) + (y*y)/(BODY_B*BODY_B);
+                        let innerA = BODY_A - 8; let innerB = BODY_B - 8;
+                        let inner = (x*x)/(innerA*innerA) + (y*y)/(innerB*innerB);
+                        if (outer <= 1.05 && inner >= 0.90) org.pts.push({x, y});
+                    }
+                }
+            } else {
+                for(let x = org.bounds.minX; x <= org.bounds.maxX; x += 4) {
+                    for(let y = org.bounds.minY; y <= org.bounds.maxY; y += 4) {
+                        if(tCtx.isPointInPath(org.path, x, y)) org.pts.push({x, y});
+                    }
+                }
+            }
+        }
+
+        document.getElementById('header-l_femur').innerHTML = `<span>${tpl.l_femur.name} (Max ${tpl.l_femur.limit} %)</span><span id="val-l_femur">0 %</span>`;
+        document.getElementById('header-l_femur').style.color = tpl.l_femur.isTitan ? '#f8fafc' : 'var(--color-femur)';
+        
+        document.getElementById('header-skin').innerHTML = `<span>Kůže (Max ${skinLimit} %)</span><span id="val-skin">0 %</span>`;
+        document.getElementById('limit-skin').style.left = `${(skinLimit/150)*100}%`;
+
+        resetAll();
+    }
+
+    document.getElementById('level-select').addEventListener('change', (e) => loadLevel(e.target.value));
+
+    function getTMR(depth) {
+        if (depth < 0) return 0;
+        return Math.exp(-0.004 * depth) - 0.1 * Math.exp(-0.05 * depth); 
+    }
+
+    function calculateDoseAtPoint(px, py) {
+        let targetX = 0;
+        let targetY = ANATOMY_TEMPLATES[currentLevel].prostate.cy || 0;
+        let totalDose = 0;
+        let currentFieldSize = (currentLevel === 2) ? 32 : DEFAULT_FIELD_SIZE;
+
+        for (let i = 0; i < BEAMS.length; i++) {
+            let W = beamWeights[i];
+            if (W <= 0 || !BEAMS[i].activeIn.includes(currentMode)) continue;
+
+            let angleRad = BEAMS[i].angle * Math.PI / 180;
+            let sx = Math.cos(angleRad);
+            let sy = Math.sin(angleRad);
+
+            let a = (sx * sx) / (BODY_A * BODY_A) + (sy * sy) / (BODY_B * BODY_B);
+            
+            let b_p = 2 * ((px * sx) / (BODY_A * BODY_A) + (py * sy) / (BODY_B * BODY_B));
+            let c_p = (px * px) / (BODY_A * BODY_A) + (py * py) / (BODY_B * BODY_B) - 1;
+            let disc_p = b_p * b_p - 4 * a * c_p;
+            if(disc_p < 0) continue; 
+
+            let physical_depth = (-b_p + Math.sqrt(disc_p)) / (2 * a);
+            if (physical_depth < 0) physical_depth = 0;
+
+            let b_iso = 2 * ((targetX * sx) / (BODY_A * BODY_A) + (targetY * sy) / (BODY_B * BODY_B));
+            let c_iso = (targetX * targetX) / (BODY_A * BODY_A) + (targetY * targetY) / (BODY_B * BODY_B) - 1;
+            let disc_iso = b_iso * b_iso - 4 * a * c_iso;
+            let z_iso_phys = (disc_iso >= 0) ? (-b_iso + Math.sqrt(disc_iso)) / (2 * a) : 0;
+            if (z_iso_phys < 0) z_iso_phys = 0;
+
+            let eff_depth = physical_depth;
+            let z_iso_eff = z_iso_phys;
+
+            if (physical_depth > 0) {
+                let entryX = px + physical_depth * sx; let entryY = py + physical_depth * sy;
+                let isoEntryX = targetX + z_iso_phys * sx; let isoEntryY = targetY + z_iso_phys * sy;
+                let dx = -sx; let dy = -sy;
+
+                for (let org of PHYSICS_ORGANS) {
+                    let fx = entryX - org.cx; let fy = entryY - org.cy;
+                    let b_circ = 2 * (fx * dx + fy * dy);
+                    let c_circ = (fx * fx + fy * fy) - org.r * org.r;
+                    let disc_circ = b_circ * b_circ - 4 * c_circ;
+                    if (disc_circ >= 0) {
+                        let sqrt_disc = Math.sqrt(disc_circ);
+                        let start = Math.max(0, (-b_circ - sqrt_disc) / 2);
+                        let end = Math.min(physical_depth, (-b_circ + sqrt_disc) / 2);
+                        if (start < end) eff_depth += (end - start) * (org.density - 1.0);
+                    }
+
+                    let fx_iso = isoEntryX - org.cx; let fy_iso = isoEntryY - org.cy;
+                    let b_circ_iso = 2 * (fx_iso * dx + fy_iso * dy);
+                    let c_circ_iso = (fx_iso * fx_iso + fy_iso * fy_iso) - org.r * org.r;
+                    let disc_circ_iso = b_circ_iso * b_circ_iso - 4 * c_circ_iso;
+                    if (disc_circ_iso >= 0) {
+                        let sqrt_iso = Math.sqrt(disc_circ_iso);
+                        let start_iso = Math.max(0, (-b_circ_iso - sqrt_iso) / 2);
+                        let end_iso = Math.min(z_iso_phys, (-b_circ_iso + sqrt_iso) / 2);
+                        if (start_iso < end_iso) z_iso_eff += (end_iso - start_iso) * (org.density - 1.0);
+                    }
+                }
+            }
+
+            let relX = px - targetX; let relY = py - targetY;
+            let distFromSource = SAD - (relX * sx + relY * sy);
+            let offAxisRaw = Math.abs(sx * relY - sy * relX);
+            let t_eff = offAxisRaw * (SAD / distFromSource);
+            
+            let offAxisFactor = 0.5 * (1 - Math.tanh((t_eff - currentFieldSize / 2) / PENUMBRA));
+            let tmr_ratio = getTMR(eff_depth) / (getTMR(z_iso_eff) || 1);
+
+            totalDose += W * tmr_ratio * offAxisFactor;
+        }
+        return totalDose;
+    }
+
+    function calculateFullDosimetry() {
+        let stats = {};
+        let dvhData = {};
+        for (const [key, organ] of Object.entries(ORGANS)) {
+            let doses = organ.pts.map(pt => calculateDoseAtPoint(pt.x, pt.y));
+            doses.sort((a,b) => a - b);
+            let sum = doses.reduce((a, b) => a + b, 0);
+            
+            // KLINICKÝ TRIK (D5): Hodnotíme reálnou zátěž objemu orgánu (95. percentil), odfiltrujeme falešné jedno-pixelové špičky (šum)
+            let d5Index = Math.floor(doses.length * 0.95);
+            let maxDose = doses.length > 0 ? doses[d5Index] : 0;
+            
+            stats[key] = { avg: sum / doses.length, max: maxDose };
+            dvhData[key] = doses;
+        }
+        return { stats, dvhData };
+    }
+
+    // --- Dokonalé a Stabilní "Golden Angle" Optimalizace ---
+    window.autoSolve = function() {
+        document.getElementById('technique-select').value = 'vmat';
+        currentMode = 'vmat';
+        updateModeUI();
+        
+        let basePattern = [];
+        if (currentLevel == 1) {
+            // Široký VMAT oblouk: Vynecháme pouze AP (270) a PA (90), abychom 100% ušetřili konečník a měchýř.
+            basePattern = [0, 15, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15];
+        } else if (currentLevel == 2) {
+            // Těsný konečník: Konečník je extrémně blízko! 
+            // Vypínáme vše zepředu i zezadu. Jedeme POUZE přes široké boční úhly.
+            // Ty projdou přesně mezi stehenní kostí a konečníkem a minou ho na milimetr!
+            basePattern = [0, 0, 30, 20, 0, 0, 0, 0, 0, 20, 30, 0];
+        } else if (currentLevel == 3) {
+            // Titanová kyčel: Levá strana je zeď. AP a PA by trefily konečník.
+            // Použijeme nádherný pravý vějíř, který mine jak konečník, tak levý titan.
+            basePattern = [0, 20, 25, 20, 25, 20, 0, 0, 0, 0, 0, 0];
+        }
+
+        beamWeights = [...basePattern];
+        let unitDose = calculateFullDosimetry().stats.prostate.avg;
+        if(unitDose <= 0) return;
+
+        // Proporcionální škálování na cíl
+        let scale = 100 / unitDose;
+        for(let i=0; i<12; i++) beamWeights[i] = basePattern[i] * scale;
+
+        // Jemné doladění na plovoucí desetinné čárce
+        for (let step = 0; step < 15; step++) {
+            let avg = calculateFullDosimetry().stats.prostate.avg;
+            if (Math.abs(avg - 100) < 0.1) break;
+            let ratio = 100 / avg;
+            for(let i=0; i<12; i++) beamWeights[i] *= ratio;
+        }
+
+        // Zaokrouhlení a korekce na celá čísla sliderů
+        let activeIdx = [];
+        for(let i=0; i<12; i++) {
+            beamWeights[i] = Math.round(beamWeights[i]);
+            if (beamWeights[i] > 0) activeIdx.push(i);
+        }
+
+        // Agresivní kotevní smyčka: Ujistíme se, že prostata má OPRAVDU přesně 100 %
+        let safety = 0;
+        while(safety < 100 && activeIdx.length > 0) {
+            let avg = Math.round(calculateFullDosimetry().stats.prostate.avg);
+            if (avg === 100) break;
+            
+            // Prohazujeme index, abychom zátěž rozdělili rovnoměrně
+            let idx = activeIdx[safety % activeIdx.length];
+            if (avg < 100) { 
+                beamWeights[idx]++; 
+            } else if (avg > 100 && beamWeights[idx] > 0) { 
+                beamWeights[idx]--; 
+            }
+            safety++;
+        }
+
+        BEAMS.forEach((beam, i) => {
+            let slider = document.getElementById(`slider-${beam.id}`);
+            if(slider) slider.value = beamWeights[i];
+            let valText = document.getElementById(`val-beam-${beam.id}`);
+            if(valText) valText.innerText = beamWeights[i];
+        });
+
+        updateSimulation();
+    }
+
+    // --- Generování Color Wash (Heatmapy) ---
+    function doseToColor(dose) {
+        if (dose < 2) return [0, 0, 0, 0]; // Neviditelné
+        if (dose < 30) return [0, 0, 255, (dose/30)*150]; // Modrá
+        if (dose < 60) return [0, 255, 255 - ((dose-30)/30)*255, 180]; // Azurová -> Zelená
+        if (dose < 95) return [255 * ((dose-60)/35), 255, 0, 200]; // Zelená -> Žlutá
+        if (dose <= 105) return [255, 255 - ((dose-95)/10)*255, 0, 220]; // Žlutá -> Červená (Cílová)
+        return [255, 0, 255, 255]; // Purpurová Hotspot (>105 %)
+    }
+
+    function renderHeatmap() {
+        let imgData = heatCtx.createImageData(GRID_W, GRID_H);
+        let i = 0;
+        let isActive = beamWeights.some(w => w > 0);
+        
+        if (isActive) {
+            for (let y = 0; y < canvas.height; y += GRID_STEP) {
+                for (let x = 0; x < canvas.width; x += GRID_STEP) {
+                    let px = x - cx; let py = y - cy;
+                    if ((px*px)/(BODY_A*BODY_A) + (py*py)/(BODY_B*BODY_B) <= 1.05) {
+                        let dose = calculateDoseAtPoint(px, py);
+                        let col = doseToColor(dose);
+                        imgData.data[i++] = col[0]; imgData.data[i++] = col[1]; imgData.data[i++] = col[2]; imgData.data[i++] = col[3];
+                    } else {
+                        imgData.data[i++] = 0; imgData.data[i++] = 0; imgData.data[i++] = 0; imgData.data[i++] = 0;
+                    }
+                }
+            }
+        } else {
+            for (let j = 0; j < imgData.data.length; j += 4) { imgData.data[j+3] = 0; }
+        }
+        
+        heatCtx.putImageData(imgData, 0, 0);
+        
+        ctx.save();
+        ctx.scale(GRID_STEP, GRID_STEP);
+        ctx.imageSmoothingEnabled = true; 
+        ctx.drawImage(heatCanvas, 0, 0);
+        ctx.restore();
+    }
+
+    function drawCanvas(stats) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#020617';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.beginPath(); ctx.ellipse(0, 0, BODY_A, BODY_B, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f172a'; ctx.fill();
+        ctx.restore();
+
+        renderHeatmap();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, BODY_A, BODY_B, 0, 0, Math.PI * 2);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(0, 0, BODY_A, BODY_B, 0, 0, Math.PI * 2);
+        let skinDose = stats['skin'].max || stats['skin'].avg;
+        if (skinDose > ORGANS['skin'].limit) {
+            ctx.strokeStyle = '#ef4444'; 
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 10;
+        } else {
+            ctx.strokeStyle = 'rgba(244, 114, 182, 0.4)'; 
+            ctx.shadowBlur = 0;
+        }
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        for (const [key, org] of Object.entries(ORGANS)) {
+            if (key === 'skin') continue; 
+            let dose = stats[key].max || stats[key].avg;
+            ctx.beginPath();
+            
+            if (org.isTitan) {
+                ctx.fillStyle = 'rgba(241, 245, 249, 0.4)'; 
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+            } else {
+                ctx.fillStyle = 'transparent';
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = org.color;
+            }
+            
+            ctx.fill(org.path);
+            ctx.stroke(org.path);
+        }
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        let targetY = ANATOMY_TEMPLATES[currentLevel].prostate.cy || 0;
+        
+        ctx.shadowColor = "black"; ctx.shadowBlur = 4;
+        ctx.fillText("PROSTATA", 0, targetY + 4);
+        ctx.fillText("MĚCHÝŘ", 0, -45);
+        ctx.fillText("KONEČNÍK", 0, ANATOMY_TEMPLATES[currentLevel].rectum.cy + 4);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillText(ORGANS.l_femur.isTitan ? "TITAN" : "L. FEMUR", -100, 9);
+        ctx.fillText("P. FEMUR", 100, 9);
+        ctx.shadowBlur = 0;
+        
+        ctx.font = '13px sans-serif';
+        ctx.fillStyle = '#64748b';
+        ctx.fillText("ANTERIOR (Břicho)", 0, -180);
+        ctx.fillText("POSTERIOR (Záda)", 0, 195);
+        
+        ctx.restore();
+    }
+
+    function updateSimulation() {
+        const { stats, dvhData } = calculateFullDosimetry();
+        latestDvhData = dvhData; 
+        updateStatsUI(stats);
+        drawCanvas(stats);
+        
+        drawDVH(dvhData, dvhCanvas, dvhCtx, false); 
+        const modal = document.getElementById('dvhModal');
+        if (modal && modal.style.display === 'block') {
+            const largeCanvas = document.getElementById('dvhCanvasLarge');
+            drawDVH(dvhData, largeCanvas, largeCanvas.getContext('2d'), true);
+        }
+    }
+
+    function updateStatsUI(stats) {
+        let score = 100;
+        let msgs = [];
+
+        let p_val = Math.round(stats.prostate.avg);
+        document.getElementById('val-prostate').innerText = `${p_val} %`;
+        updateBar('bar-prostate', p_val, 150, p_val >= 95 && p_val <= 105 ? '#22c55e' : '#38bdf8');
+        
+        score -= Math.abs(100 - p_val);
+        if (p_val < 95) msgs.push("Nádor není prozářen.");
+        if (p_val > 105) msgs.push("Vysoká dávka v prostatě.");
+
+        function handleOAR(name, id, valObj, limit, penaltyMultiplier = 2) {
+            let val = Math.round(valObj.max); 
+            document.getElementById(`val-${id}`).innerText = `${val} %`;
+            let isOverLimit = val > limit;
+            
+            let color = ORGANS[id].color;
+            if (val > limit * 0.8) color = '#f97316'; 
+            if (isOverLimit) color = '#ef4444'; 
+            
+            updateBar(`bar-${id}`, val, 150, color, isOverLimit);
+
+            if (isOverLimit) {
+                score -= (val - limit) * penaltyMultiplier;
+                msgs.push(`Zasažena ${name}!`);
+            }
+        }
+
+        handleOAR("Kůže", "skin", stats.skin, ORGANS.skin.limit, 1.5);
+        handleOAR("Měchýř", "bladder", stats.bladder, ORGANS.bladder.limit);
+        handleOAR("Konečník", "rectum", stats.rectum, ORGANS.rectum.limit);
+        handleOAR(ORGANS.l_femur.name, "l_femur", stats.l_femur, ORGANS.l_femur.limit);
+        handleOAR(ORGANS.r_femur.name, "r_femur", stats.r_femur, ORGANS.r_femur.limit);
+
+        score = Math.max(0, Math.round(score));
+        if (stats.prostate.avg < 10) score = 0; 
+
+        const scoreEl = document.getElementById('score-display');
+        const msgEl = document.getElementById('score-msg');
+        
+        scoreEl.innerText = score;
+        
+        if (score >= 95) { 
+            scoreEl.style.color = '#22c55e'; 
+            msgEl.innerText = "Excelentní plán! Kůže i orgány jsou bezpečně chráněny."; 
+        } else if (score >= 70) { 
+            scoreEl.style.color = '#eab308'; 
+            if (currentMode !== 'vmat') {
+                msgEl.innerText = "Ucházející. Sledujte oranžové zóny na kůži. Zkuste rozložit úhly."; 
+            } else {
+                msgEl.innerText = "Slušný plán, ale orgány trpí. AI udělala nejlepší kompromis."; 
+            }
+        } else if (score > 0) { 
+            scoreEl.style.color = '#ef4444'; 
+            msgEl.innerText = msgs.length > 0 ? msgs.join(" ") : "Nízká dávka v prostatě."; 
+        } else { 
+            scoreEl.style.color = 'var(--text-muted)'; 
+            msgEl.innerText = "Kritické selhání plánu! Ozařujte opatrněji."; 
+        }
+    }
+
+    function drawDVH(dvhData, targetCanvas, targetCtx, isLarge = false) {
+        const w = targetCanvas.width;
+        const h = targetCanvas.height;
+        targetCtx.clearRect(0, 0, w, h);
+
+        targetCtx.strokeStyle = '#1e293b';
+        targetCtx.lineWidth = 1;
+        targetCtx.beginPath();
+        for(let i=0; i<=5; i++) {
+            let y = h - (i/5)*h; targetCtx.moveTo(0, y); targetCtx.lineTo(w, y);
+            let x = (i/5)*w; targetCtx.moveTo(x, 0); targetCtx.lineTo(x, h);
+        }
+        targetCtx.stroke();
+        
+        targetCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+        targetCtx.setLineDash([5, 5]);
+        targetCtx.beginPath();
+        targetCtx.moveTo((100/150)*w, 0); targetCtx.lineTo((100/150)*w, h);
+        targetCtx.stroke();
+        targetCtx.setLineDash([]);
+
+        if (isLarge) {
+            targetCtx.fillStyle = '#94a3b8';
+            targetCtx.font = '13px sans-serif';
+            targetCtx.textAlign = 'left';
+            targetCtx.textBaseline = 'bottom';
+            targetCtx.fillText("100% Objemu", 5, 15);
+            targetCtx.fillText("50%", 5, h/2 - 5);
+            targetCtx.fillText("0%", 5, h - 5);
+            targetCtx.textAlign = 'right';
+            targetCtx.fillText("150% Dávky", w - 5, h - 5);
+            targetCtx.textAlign = 'center';
+            targetCtx.fillStyle = '#f8fafc';
+            targetCtx.fillText("100% Cílová dávka", (100/150)*w, 15);
+
+            const drawLimit = (limit, color, name) => {
+                let lx = (limit / 150) * w;
+                targetCtx.strokeStyle = color;
+                targetCtx.setLineDash([4, 4]);
+                targetCtx.globalAlpha = 0.6;
+                targetCtx.beginPath(); targetCtx.moveTo(lx, 25); targetCtx.lineTo(lx, h); targetCtx.stroke();
+                targetCtx.globalAlpha = 1.0;
+                targetCtx.setLineDash([]);
+                targetCtx.fillStyle = color;
+                targetCtx.font = '11px sans-serif';
+                targetCtx.textAlign = 'center';
+                targetCtx.fillText(`Max: ${limit}%`, lx, 38);
+            };
+            drawLimit(ORGANS.skin.limit, ORGANS.skin.color, "Kůže");
+            drawLimit(ORGANS.rectum.limit, ORGANS.rectum.color, "Konečník");
+        }
+
+        function drawCurve(dataArr, color, lineWidth, name, isLarge, orderIndex = 0) {
+            if(!dataArr || dataArr.length === 0) return;
+            targetCtx.beginPath();
+            targetCtx.strokeStyle = color;
+            targetCtx.lineWidth = lineWidth;
+            targetCtx.lineJoin = 'round';
+            
+            let labelPos = null;
+            let targetVol = 0.5 - (orderIndex * 0.08); 
+
+            for(let i=0; i<dataArr.length; i++) {
+                let dose = dataArr[i];
+                let volumePercent = ((dataArr.length - i) / dataArr.length); 
+                let px = Math.min(w, (dose / 150) * w);
+                let py = h - (volumePercent * h);
+                
+                if (i===0) targetCtx.moveTo(px, py);
+                else targetCtx.lineTo(px, py);
+
+                if (isLarge && volumePercent <= targetVol && !labelPos) labelPos = { x: px, y: py };
+            }
+            targetCtx.stroke();
+
+            if (isLarge && name) {
+                if (!labelPos) {
+                    let maxDose = dataArr[dataArr.length - 1] || 0;
+                    labelPos = { x: Math.min(w, (maxDose / 150) * w), y: h - 10 };
+                }
+                targetCtx.font = 'bold 13px sans-serif';
+                let textWidth = targetCtx.measureText(name).width;
+                let drawX = labelPos.x + 8; let drawY = labelPos.y; 
+                if (drawX + textWidth > w - 10) drawX = labelPos.x - textWidth - 8;
+                
+                targetCtx.fillStyle = 'rgba(2, 6, 23, 0.85)';
+                targetCtx.fillRect(drawX - 4, drawY - 13, textWidth + 8, 18);
+                targetCtx.fillStyle = color; targetCtx.textAlign = 'left'; targetCtx.textBaseline = 'alphabetic';
+                targetCtx.fillText(name, drawX, drawY);
+            }
+        }
+
+        drawCurve(dvhData.l_femur, ORGANS.l_femur.color, isLarge ? 3 : 2, ORGANS.l_femur.name, isLarge, 0);
+        drawCurve(dvhData.r_femur, ORGANS.r_femur.color, isLarge ? 3 : 2, ORGANS.r_femur.name, isLarge, 1);
+        drawCurve(dvhData.rectum, ORGANS.rectum.color, isLarge ? 3 : 2, "Konečník", isLarge, 2);
+        drawCurve(dvhData.bladder, ORGANS.bladder.color, isLarge ? 3 : 2, "Měchýř", isLarge, 3);
+        drawCurve(dvhData.skin, ORGANS.skin.color, isLarge ? 3 : 2, "Kůže", isLarge, 4);
+        drawCurve(dvhData.prostate, ORGANS.prostate.color, isLarge ? 5 : 3, "Prostata", isLarge, 5);
+    }
+
+    const slidersContainer = document.getElementById('sliders-container');
+    const modeSelect = document.getElementById('technique-select');
+
+    function initSliders() {
+        slidersContainer.innerHTML = '';
+        BEAMS.forEach(beam => {
+            const group = document.createElement('div');
+            group.className = `slider-group beam-${beam.id}`;
+            group.innerHTML = `
+                <div class="slider-header">
+                    <span>${beam.label}</span>
+                    <span id="val-beam-${beam.id}" style="color:var(--accent); font-weight:bold;">0</span>
+                </div>
+                <input type="range" id="slider-${beam.id}" min="0" max="100" value="0" step="1">
+            `;
+            slidersContainer.appendChild(group);
+
+            document.getElementById(`slider-${beam.id}`).addEventListener('input', (e) => {
+                beamWeights[beam.id] = parseInt(e.target.value);
+                document.getElementById(`val-beam-${beam.id}`).innerText = e.target.value;
+                updateSimulation();
+            });
+        });
+        updateModeUI();
+    }
+
+    modeSelect.addEventListener('change', (e) => {
+        currentMode = e.target.value;
+        resetAll();
+        updateModeUI();
+    });
+
+    function updateModeUI() {
+        BEAMS.forEach(beam => {
+            const el = document.querySelector(`.beam-${beam.id}`);
+            if (beam.activeIn.includes(currentMode)) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+                beamWeights[beam.id] = 0;
+                document.getElementById(`slider-${beam.id}`).value = 0;
+                document.getElementById(`val-beam-${beam.id}`).innerText = 0;
+            }
+        });
+        updateSimulation();
+    }
+
+    window.resetAll = function() {
+        beamWeights.fill(0);
+        BEAMS.forEach(beam => {
+            let s = document.getElementById(`slider-${beam.id}`);
+            if(s) s.value = 0;
+            let v = document.getElementById(`val-beam-${beam.id}`);
+            if(v) v.innerText = 0;
+        });
+        updateSimulation();
+    }
+
+    function updateBar(barId, val, max, color, isPulsing = false) {
+        const bar = document.getElementById(barId);
+        let width = Math.min(100, (val / max) * 100);
+        bar.style.width = `${width}%`;
+        bar.style.backgroundColor = color;
+        bar.style.boxShadow = isPulsing ? `0 0 15px ${color}` : 'none';
+    }
+
+    window.openDvhModal = function() {
+        const modal = document.getElementById('dvhModal');
+        modal.style.display = 'block';
+        if (latestDvhData) {
+            const largeCanvas = document.getElementById('dvhCanvasLarge');
+            drawDVH(latestDvhData, largeCanvas, largeCanvas.getContext('2d'), true);
+        }
+    }
+
+    window.closeDvhModal = function() { document.getElementById('dvhModal').style.display = 'none'; }
+    
+    window.openPwdModal = function() {
+        document.getElementById('pwdModal').style.display = 'block';
+        document.getElementById('teacher-pwd').value = '';
+        document.getElementById('pwd-error').style.display = 'none';
+        document.getElementById('teacher-pwd').focus();
+    }
+
+    window.checkPwd = function() {
+        const pwd = document.getElementById('teacher-pwd').value;
+        if (pwd.toLowerCase() === 'fyzika') {
+            document.getElementById('pwdModal').style.display = 'none';
+            autoSolve();
+        } else {
+            document.getElementById('pwd-error').style.display = 'block';
+        }
+    }
+
+    // Podpora odeslání hesla klávesou Enter
+    document.getElementById('teacher-pwd').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') checkPwd();
+    });
+
+    window.onclick = function(event) { 
+        if (event.target === document.getElementById('dvhModal')) closeDvhModal(); 
+        if (event.target === document.getElementById('pwdModal')) document.getElementById('pwdModal').style.display = 'none'; 
+    }
+
+    loadLevel(1);
+    initSliders();
+</script>
+</body>
+</html>
