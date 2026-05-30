@@ -154,6 +154,34 @@
             background: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
         }
 
+        /* --- Tlačítko Nápovědy --- */
+        .help-icon {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background: rgba(15, 23, 42, 0.85);
+            color: var(--accent);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        .help-icon:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent-hover);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.4);
+        }
+
         canvas#simCanvas {
             border-radius: 50%;
             box-shadow: 0 0 80px rgba(0,0,0,0.8), inset 0 0 50px rgba(255,255,255,0.05);
@@ -266,6 +294,11 @@
         .expand-btn { position: absolute; top: 5px; right: 5px; background: rgba(30, 41, 59, 0.9); border: 1px solid #475569; color: var(--text-main); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; z-index: 10; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
         .expand-btn:hover { background: var(--accent); border-color: var(--accent-hover); }
         .large-dvh-wrapper { width: 100%; height: 500px; background: #020617; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-top: 15px; position: relative; }
+
+        /* Nápověda (Textový formát) */
+        .help-content h3 { color: var(--accent); margin-top: 20px; margin-bottom: 8px; font-size: 1.1rem; border-bottom: 1px solid #1e293b; padding-bottom: 5px;}
+        .help-content p, .help-content li { color: var(--text-muted); font-size: 0.9rem; line-height: 1.6; margin-bottom: 8px; }
+        .help-content ul { padding-left: 20px; }
     </style>
 </head>
 <body>
@@ -306,6 +339,8 @@
     </div>
 
     <div id="main-area">
+        <div class="help-icon" title="Zobrazit návod" onclick="openHelpModal()">?</div>
+
         <canvas id="simCanvas" width="800" height="800"></canvas>
         
         <div class="legend">
@@ -424,10 +459,37 @@
         </div>
     </div>
 
+    <div id="helpModal" class="modal">
+        <div class="modal-content help-content" style="max-width: 600px;">
+            <span class="close-btn" onclick="closeHelpModal()">&times;</span>
+            <h2 style="color: var(--text-main); font-size: 1.6rem; margin-bottom: 5px;">Jak ovládat simulátor ☢️</h2>
+            <p>Vítejte v plánovacím systému! Vaším úkolem jako radiologického fyzika je sestavit ideální ozařovací plán. Musíte zničit nádor, ale zároveň neublížit pacientovi.</p>
+            
+            <h3>🎯 Hlavní cíle</h3>
+            <ul>
+                <li><strong>Prostata (Zelená):</strong> Nádor. Aby léčba fungovala, musí dostat <strong>přesně 100 %</strong> dávky. Za každý procentní bod nad nebo pod 100 ztrácíte body.</li>
+                <li><strong>Zdravé orgány (OARs):</strong> Měchýř, konečník a kosti nesmí překročit své stanovené limity. Kritický je zejména konečník.</li>
+                <li><strong>Kůže (Růžová):</strong> Pokud pošlete všechno záření jen z jednoho směru, kůže pacienta se spálí. Dávku musíte integrálně rozprostřít z více úhlů.</li>
+            </ul>
+
+            <h3>🎛️ Ovládání paprsků</h3>
+            <p>V levém panelu máte k dispozici až 12 úhlů (při technice VMAT). Každý posuvník nastavuje intenzitu záření z daného směru. Experimentujte s tím, které úhly jsou pro danou misi nejvhodnější.</p>
+            
+            <h3>🎨 Jak číst Heatmapu (Color Wash)</h3>
+            <p>Na plátně vidíte průřez tělem pacienta. Barvy ukazují, kde se hromadí záření:</p>
+            <ul>
+                <li><span style="color: #38bdf8; font-weight:bold;">Modrá a Zelená:</span> Bezpečná, nízká dávka. Orgány jsou v pořádku.</li>
+                <li><span style="color: #fbbf24; font-weight:bold;">Žlutá a Oranžová:</span> Střední zátěž. Dávejte pozor na limity.</li>
+                <li><span style="color: #ef4444; font-weight:bold;">Červená (100 %):</span> Terapeutická dávka. Tato barva by měla být pouze v prostatě!</li>
+                <li><span style="color: #d946ef; font-weight:bold;">Fialová (> 105 %):</span> Nebezpečný Hotspot. Místo je přepálené.</li>
+            </ul>
+        </div>
+    </div>
+
 <script>
     // --- Geometrie a Fyzika ---
     const SAD = 450; 
-    const PENUMBRA = 6; // Ostřejší paprsky (simulace moderního MLC kolimátoru)
+    const PENUMBRA = 6; 
     const BODY_A = 220; 
     const BODY_B = 160; 
     const DEFAULT_FIELD_SIZE = 40;
@@ -465,7 +527,7 @@
             r_femur: { density: 1.8, name: "P. Femur", limit: 50 }
         },
         2: {
-            desc: "Zvýšené riziko! Konečník je anatomicky velmi blízko prostaty. Úplně se vyhněte předním a zadním paprskům (AP, PA), pálte z boků.",
+            desc: "Zvýšené riziko! Konečník je anatomicky blízko prostaty. Úplně se vyhněte předním a zadním paprskům (AP, PA), pálte z boků.",
             prostate: { cy: -5 },
             rectum: { cy: 26 },
             l_femur: { density: 1.8, name: "L. Femur", limit: 50, isTitan: false },
@@ -525,7 +587,6 @@
         paths.r_femur.ellipse(120, 12, 12, 20, -Math.PI/4, 0, Math.PI*2);
         paths.skin.ellipse(0, 0, BODY_A, BODY_B, 0, 0, Math.PI*2);
 
-        // Dynamický limit pro kůži podle klinické praxe (pokud musíme ozařovat jen z půlky těla, limit se zvyšuje)
         let skinLimit = (currentLevel === 3) ? 55 : 50;
 
         ORGANS = {
@@ -543,7 +604,6 @@
             { cx: 0, cy: tpl.rectum.cy, r: 14, density: 0.5 }
         ];
 
-        // Vygenerování testovacích bodů pro rychlé DVH
         for (let key in ORGANS) {
             let org = ORGANS[key];
             org.pts = [];
@@ -665,7 +725,6 @@
             doses.sort((a,b) => a - b);
             let sum = doses.reduce((a, b) => a + b, 0);
             
-            // KLINICKÝ TRIK (D5): Hodnotíme reálnou zátěž objemu orgánu (95. percentil), odfiltrujeme falešné jedno-pixelové špičky (šum)
             let d5Index = Math.floor(doses.length * 0.95);
             let maxDose = doses.length > 0 ? doses[d5Index] : 0;
             
@@ -675,7 +734,6 @@
         return { stats, dvhData };
     }
 
-    // --- Dokonalé a Stabilní "Golden Angle" Optimalizace ---
     window.autoSolve = function() {
         document.getElementById('technique-select').value = 'vmat';
         currentMode = 'vmat';
@@ -683,16 +741,10 @@
         
         let basePattern = [];
         if (currentLevel == 1) {
-            // Široký VMAT oblouk: Vynecháme pouze AP (270) a PA (90), abychom 100% ušetřili konečník a měchýř.
             basePattern = [0, 15, 15, 15, 15, 15, 0, 15, 15, 15, 15, 15];
         } else if (currentLevel == 2) {
-            // Těsný konečník: Konečník je extrémně blízko! 
-            // Vypínáme vše zepředu i zezadu. Jedeme POUZE přes široké boční úhly.
-            // Ty projdou přesně mezi stehenní kostí a konečníkem a minou ho na milimetr!
             basePattern = [0, 0, 30, 20, 0, 0, 0, 0, 0, 20, 30, 0];
         } else if (currentLevel == 3) {
-            // Titanová kyčel: Levá strana je zeď. AP a PA by trefily konečník.
-            // Použijeme nádherný pravý vějíř, který mine jak konečník, tak levý titan.
             basePattern = [0, 20, 25, 20, 25, 20, 0, 0, 0, 0, 0, 0];
         }
 
@@ -700,11 +752,9 @@
         let unitDose = calculateFullDosimetry().stats.prostate.avg;
         if(unitDose <= 0) return;
 
-        // Proporcionální škálování na cíl
         let scale = 100 / unitDose;
         for(let i=0; i<12; i++) beamWeights[i] = basePattern[i] * scale;
 
-        // Jemné doladění na plovoucí desetinné čárce
         for (let step = 0; step < 15; step++) {
             let avg = calculateFullDosimetry().stats.prostate.avg;
             if (Math.abs(avg - 100) < 0.1) break;
@@ -712,20 +762,17 @@
             for(let i=0; i<12; i++) beamWeights[i] *= ratio;
         }
 
-        // Zaokrouhlení a korekce na celá čísla sliderů
         let activeIdx = [];
         for(let i=0; i<12; i++) {
             beamWeights[i] = Math.round(beamWeights[i]);
             if (beamWeights[i] > 0) activeIdx.push(i);
         }
 
-        // Agresivní kotevní smyčka: Ujistíme se, že prostata má OPRAVDU přesně 100 %
         let safety = 0;
         while(safety < 100 && activeIdx.length > 0) {
             let avg = Math.round(calculateFullDosimetry().stats.prostate.avg);
             if (avg === 100) break;
             
-            // Prohazujeme index, abychom zátěž rozdělili rovnoměrně
             let idx = activeIdx[safety % activeIdx.length];
             if (avg < 100) { 
                 beamWeights[idx]++; 
@@ -745,14 +792,13 @@
         updateSimulation();
     }
 
-    // --- Generování Color Wash (Heatmapy) ---
     function doseToColor(dose) {
-        if (dose < 2) return [0, 0, 0, 0]; // Neviditelné
-        if (dose < 30) return [0, 0, 255, (dose/30)*150]; // Modrá
-        if (dose < 60) return [0, 255, 255 - ((dose-30)/30)*255, 180]; // Azurová -> Zelená
-        if (dose < 95) return [255 * ((dose-60)/35), 255, 0, 200]; // Zelená -> Žlutá
-        if (dose <= 105) return [255, 255 - ((dose-95)/10)*255, 0, 220]; // Žlutá -> Červená (Cílová)
-        return [255, 0, 255, 255]; // Purpurová Hotspot (>105 %)
+        if (dose < 2) return [0, 0, 0, 0]; 
+        if (dose < 30) return [0, 0, 255, (dose/30)*150]; 
+        if (dose < 60) return [0, 255, 255 - ((dose-30)/30)*255, 180]; 
+        if (dose < 95) return [255 * ((dose-60)/35), 255, 0, 200]; 
+        if (dose <= 105) return [255, 255 - ((dose-95)/10)*255, 0, 220]; 
+        return [255, 0, 255, 255]; 
     }
 
     function renderHeatmap() {
@@ -929,7 +975,7 @@
             if (currentMode !== 'vmat') {
                 msgEl.innerText = "Ucházející. Sledujte oranžové zóny na kůži. Zkuste rozložit úhly."; 
             } else {
-                msgEl.innerText = "Slušný plán, ale orgány trpí. AI udělala nejlepší kompromis."; 
+                msgEl.innerText = "Slušný plán, ale orgány trpí. Zkuste doladit posuvníky."; 
             }
         } else if (score > 0) { 
             scoreEl.style.color = '#ef4444'; 
@@ -1106,16 +1152,9 @@
         bar.style.boxShadow = isPulsing ? `0 0 15px ${color}` : 'none';
     }
 
-    window.openDvhModal = function() {
-        const modal = document.getElementById('dvhModal');
-        modal.style.display = 'block';
-        if (latestDvhData) {
-            const largeCanvas = document.getElementById('dvhCanvasLarge');
-            drawDVH(latestDvhData, largeCanvas, largeCanvas.getContext('2d'), true);
-        }
-    }
-
-    window.closeDvhModal = function() { document.getElementById('dvhModal').style.display = 'none'; }
+    // Modal logic
+    window.openHelpModal = function() { document.getElementById('helpModal').style.display = 'block'; }
+    window.closeHelpModal = function() { document.getElementById('helpModal').style.display = 'none'; }
     
     window.openPwdModal = function() {
         document.getElementById('pwdModal').style.display = 'block';
@@ -1134,7 +1173,6 @@
         }
     }
 
-    // Podpora odeslání hesla klávesou Enter
     document.getElementById('teacher-pwd').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') checkPwd();
     });
@@ -1142,6 +1180,7 @@
     window.onclick = function(event) { 
         if (event.target === document.getElementById('dvhModal')) closeDvhModal(); 
         if (event.target === document.getElementById('pwdModal')) document.getElementById('pwdModal').style.display = 'none'; 
+        if (event.target === document.getElementById('helpModal')) closeHelpModal(); 
     }
 
     loadLevel(1);
