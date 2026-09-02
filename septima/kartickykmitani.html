@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta tag klíčový pro správné zobrazení na mobilech -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kmitá to, nebo ne?</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-light: #4b5563;
+            --correct: #10b981;
+            --wrong: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 500px;
+            background: var(--bg);
+            position: relative;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            width: 100%;
+            flex: 1;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Úvodní obrazovka --- */
+        h1, h2 { color: var(--primary); margin-top: 0; }
+        .time-badge {
+            display: inline-block;
+            background: #e0e7ff;
+            color: var(--primary);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .instruction-box {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        .instruction-box ol { padding-left: 20px; margin: 10px 0; }
+        .instruction-box li { margin-bottom: 8px; }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+
+        /* --- Herní obrazovka --- */
+        .progress {
+            text-align: center;
+            color: var(--text-light);
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .flashcard {
+            background: var(--card-bg);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 30px;
+            min-height: 250px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn-kmit { background: #3b82f6; }
+        .btn-per { background: #8b5cf6; }
+        .btn-ani { background: #64748b; }
+
+        /* --- Obrazovka s výsledky --- */
+        .result-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .result-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border-left: 5px solid gray;
+        }
+        .result-header.correct { border-left-color: var(--correct); }
+        .result-header.wrong { border-left-color: var(--wrong); }
+        .result-header.discussion { border-left-color: var(--warning); }
+        
+        .result-title { font-weight: bold; font-size: 1.1em; }
+        .result-badge {
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 8px;
+            background: #eee;
+        }
+        .badge-correct { background: #d1fae5; color: #065f46; }
+        .badge-wrong { background: #fee2e2; color: #991b1b; }
+        .badge-trap { background: #fef3c7; color: #92400e; display: inline-block; margin-top: 5px; }
+
+        .result-details {
+            display: none;
+            padding: 15px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+            font-size: 0.95em;
+            color: var(--text-light);
+        }
+        .result-item.open .result-details { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 1. ÚVODNÍ OBRAZOVKA -->
+    <div id="screen-intro" class="screen active">
+        <div>
+            <span class="time-badge">⏱️ Sólo práce (2 min)</span>
+            <h1>Kmitá to, nebo ne?</h1>
+            <p>Zařaď následující situace do jedné ze tří kategorií. Při rozhodování si polož dvě otázky:</p>
+            
+            <div class="instruction-box">
+                <ol>
+                    <li>Vrací se pohyb pravidelně do <b>jedné a téže polohy</b> (rovnovážné)?</li>
+                    <li>Opakuje se pohyb v <b>pravidelných časových intervalech</b>?</li>
+                </ol>
+                <p style="font-size: 0.9em; margin-bottom: 0;">
+                    ✅ + ✅ = <b>Kmitavý pohyb</b><br>
+                    ❌ + ✅ = <b>Periodický, ne kmitavý</b><br>
+                    ❌ + ❌ = <b>Ani jedno</b>
+                </p>
+            </div>
+        </div>
+        <button class="btn" style="margin-top: auto;" onclick="startGame()">Začít třídit</button>
+    </div>
+
+    <!-- 2. HERNÍ OBRAZOVKA -->
+    <div id="screen-game" class="screen">
+        <div class="progress" id="progress-text">Karta 1 / 12</div>
+        
+        <div class="flashcard" id="card-text">
+            Kyvadlo hodin
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-kmit" onclick="answer('kmitavy')">🔄 Kmitavý pohyb</button>
+            <button class="btn btn-per" onclick="answer('periodicky')">🔁 Periodický, ale NE kmitavý</button>
+            <button class="btn btn-ani" onclick="answer('ani')">❌ Ani jedno</button>
+        </div>
+    </div>
+
+    <!-- 3. OBRAZOVKA VÝSLEDKŮ -->
+    <div id="screen-results" class="screen">
+        <h2>Tvoje řešení</h2>
+        <p style="color: var(--text-light); font-size: 0.9em;">Kliknutím na kartu zobrazíš zdůvodnění. Tam, kde máš chybu nebo je karta chyták, prodiskutuj to ve dvojici!</p>
+        
+        <div id="results-list"></div>
+
+        <button class="btn" style="margin-top: 20px; background: var(--text-light);" onclick="location.reload()">Zkusit znovu</button>
+    </div>
+</div>
+
+<script>
+    // DATA KARET (včetně řešení a chytáků)
+    const cards = [
+        { text: "Kyvadlo hodin", correct: "kmitavy", reason: "Pravidelně se vrací ke svislé rovnovážné poloze." },
+        { text: "Struna kytary po brnknutí", correct: "kmitavy", reason: "Vrací se ke klidové poloze, i když s klesající amplitudou (tlumené kmitání)." },
+        { text: "Píst spalovacího motoru", correct: "kmitavy", reason: "Přímočarý pohyb tam a zpět kolem střední polohy válce – kinematicky jde o kmitání, i když je poháněné vnějším motorem." },
+        { text: "Houpačka na hřišti", correct: "kmitavy", reason: "Klasické kyvadlo – vrací se ke svislé rovnovážné poloze." },
+        { text: "Chůze člověka", correct: "ani", isTrap: true, reason: "Nohy se pohybují opakovaně, ale těžiště těla postupuje vpřed – není to vratný pohyb k jedné pevné poloze. Ne každý hýbavý pohyb je kmitání!" },
+        { text: "Otáčení ručičky hodin", correct: "periodicky", reason: "Opakuje se pravidelně, ale pohyb jde stále jedním směrem, nevrací se tam a zpět." },
+        { text: "Rovnoměrný pohyb po kružnici", correct: "periodicky", isTrap: true, reason: "Je periodický (opakuje se), ale NENÍ kmitavý – chybí tu rovnovážná poloha, ke které by se pohyb vracel po téže trajektorii tam a zpět." },
+        { text: "Míček padající a odrážející se od podlahy", correct: "periodicky", isTrap: true, reason: "Hraniční případ. Je periodický a vratný, ale trajektorie není symetrická kolem rovnovážné polohy jako u typického kmitání." },
+        { text: "Vibrace struny ladičky", correct: "kmitavy", reason: "Stejný princip jako struna kytary, jen s vyšší frekvencí." },
+        { text: "Membrána reproduktoru", correct: "kmitavy", reason: "Kmitá kolem klidové polohy podle přiváděného signálu." },
+        { text: "Kyvadlo na Měsíci", correct: "kmitavy", isTrap: true, reason: "Bude kmitat i tam, jen pomaleji. Kmitání nezávisí na tom, že jsme na Zemi, ale na existenci vratné síly (tíhové)." },
+        { text: "Srdeční sval", correct: "kmitavy", reason: "Periodické stahování a uvolňování kolem 'klidového' stavu svalu." }
+    ];
+
+    const categoryNames = {
+        "kmitavy": "Kmitavý",
+        "periodicky": "Periodický",
+        "ani": "Ani jedno"
+    };
+
+    let currentIndex = 0;
+    let userAnswers = [];
+
+    // Zamíchání karet pro každého studenta jinak (Fisher-Yates)
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function startGame() {
+        shuffle(cards);
+        currentIndex = 0;
+        userAnswers = [];
+        updateCard();
+        showScreen('screen-game');
+    }
+
+    function updateCard() {
+        document.getElementById('progress-text').innerText = `Karta ${currentIndex + 1} / ${cards.length}`;
+        document.getElementById('card-text').innerText = cards[currentIndex].text;
+    }
+
+    function answer(category) {
+        userAnswers.push({
+            card: cards[currentIndex],
+            answer: category
+        });
+
+        currentIndex++;
+        if (currentIndex < cards.length) {
+            updateCard();
+        } else {
+            showResults();
+        }
+    }
+
+    function showResults() {
+        const resultsList = document.getElementById('results-list');
+        resultsList.innerHTML = '';
+
+        userAnswers.forEach((item, index) => {
+            const isCorrect = item.answer === item.card.correct;
+            let statusClass = isCorrect ? 'correct' : 'wrong';
+            if (!isCorrect && item.card.isTrap) statusClass = 'discussion'; // Chytáky dáme oranžově místo tvrdé chyby
+
+            const badgeClass = isCorrect ? 'badge-correct' : 'badge-wrong';
+            const statusText = isCorrect ? 'Správně' : 'Chybně';
+
+            const trapBadge = item.card.isTrap ? `<div class="result-badge badge-trap">⚠️ Diskuze / Chyták</div>` : '';
+
+            const el = document.createElement('div');
+            el.className = 'result-item';
+            el.innerHTML = `
+                <div class="result-header ${statusClass}" onclick="this.parentElement.classList.toggle('open')">
+                    <div>
+                        <div class="result-title">${item.card.text}</div>
+                        <div style="font-size: 0.85em; margin-top: 4px; color: #666;">
+                            Tvá odpověď: <b>${categoryNames[item.answer]}</b>
+                        </div>
+                        ${trapBadge}
+                    </div>
+                    <div class="result-badge ${badgeClass}">${statusText}</div>
+                </div>
+                <div class="result-details">
+                    <p><b>Správně:</b> ${categoryNames[item.card.correct]}</p>
+                    <p><i>${item.card.reason}</i></p>
+                </div>
+            `;
+            resultsList.appendChild(el);
+        });
+
+        showScreen('screen-results');
+    }
+</script>
+</body>
+</html>
