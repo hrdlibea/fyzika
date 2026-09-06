@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fyzikální šifra: Vědecký zápis & SI předpony</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at center, #0e1726 0%, #030712 100%);
+            color: #f3f4f6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .sci-fi-title {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .sub-title {
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        /* Skleněný efekt pro moderní sci-fi vzhled */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-panel-glow {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.15);
+        }
+
+        /* Styl pro kartičky s 3D rotací */
+        .card-perspective {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .card-inner.is-solved {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+        }
+
+        /* Animace pulzování pro důležité prvky */
+        @keyframes pulse-cyan {
+            0%, 100% { box-shadow: 0 0 10px rgba(6, 182, 212, 0.2); }
+            50% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.5); }
+        }
+        .pulse-glow-cyan {
+            animation: pulse-cyan 2s infinite;
+        }
+
+        @keyframes pulse-indigo {
+            0%, 100% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.25); }
+            50% { box-shadow: 0 0 24px rgba(99, 102, 241, 0.6); }
+        }
+        .pulse-glow-indigo {
+            animation: pulse-indigo 2.5s infinite;
+        }
+
+        /* Přizpůsobení posuvníku (Scrollbaru) */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030712;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        /* Tiskové styly pro certifikát */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #certificate-print-area, #certificate-print-area * {
+                visibility: visible;
+            }
+            #certificate-print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white !important;
+                color: black !important;
+                padding: 40px !important;
+                border: 10px double #4F46E5 !important;
+                border-radius: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="transition-colors duration-300">
+
+    <div class="h-1.5 w-full bg-gradient-to-r from-cyan-500 via-indigo-500 to-purple-500"></div>
+
+    <canvas id="confetti-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
+
+    <div id="stars-container" class="absolute inset-0 pointer-events-none overflow-hidden opacity-30 z-0"></div>
+
+    <div class="container mx-auto px-4 py-6 max-w-7xl relative z-10">
+        
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 pb-6 border-b border-gray-800">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 flex items-center justify-center bg-indigo-900/50 rounded-xl border border-indigo-500/30 text-indigo-400 shrink-0">
+                    <svg class="w-8 h-8 animate-spin" style="animation-duration: 8s;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="3" class="fill-indigo-400"/>
+                        <ellipse cx="12" cy="12" rx="10" ry="3" stroke="currentColor" stroke-width="1" class="origin-center rotate-45 opacity-60"/>
+                        <ellipse cx="12" cy="12" rx="10" ry="3" stroke="currentColor" stroke-width="1" class="origin-center -rotate-45 opacity-60"/>
+                        <ellipse cx="12" cy="12" rx="10" ry="3" stroke="currentColor" stroke-width="1" class="origin-center rotate-90 opacity-60"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="sci-fi-title text-xl md:text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-indigo-300 to-purple-400">
+                        FYZIKÁLNÍ ŠIFRA
+                    </h1>
+                    <p class="sub-title text-xs md:text-sm text-cyan-400 uppercase tracking-widest font-semibold">
+                        Vědecký zápis & SI předpony pro 1. ročníky
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 justify-center">
+                <button id="btn-sound-toggle" onclick="toggleSound()" class="p-2.5 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-300 hover:text-cyan-400 transition-all flex items-center gap-2 text-sm" title="Zapnout/Vypnout zvuky">
+                    <span id="sound-icon">🔊</span> <span class="hidden sm:inline">Zvuk zapnut</span>
+                </button>
+                <button onclick="toggleHelper()" class="p-2.5 rounded-lg bg-indigo-950/60 border border-indigo-800/50 text-indigo-200 hover:bg-indigo-900/80 transition-all flex items-center gap-2 text-sm font-semibold">
+                    💡 <span>Zobrazit Tahák</span>
+                </button>
+                <div class="px-4 py-2.5 rounded-lg bg-gray-900/90 border border-gray-800 flex items-center gap-3 font-mono">
+                    <span class="text-xs text-gray-500 uppercase font-sans">⏱ Čas</span>
+                    <span id="game-timer" class="text-cyan-400 font-bold text-lg">00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="welcome-panel" class="glass-panel-glow p-6 md:p-8 rounded-2xl mb-8 max-w-3xl mx-auto transition-all transform duration-500 hover:scale-[1.01]">
+            <div class="flex flex-col md:flex-row items-center gap-6">
+                <div class="w-20 h-20 bg-indigo-600/20 border border-indigo-400/30 rounded-full flex items-center justify-center text-4xl animate-bounce shrink-0">
+                    🚀
+                </div>
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold text-white mb-2">Vesmírná mise: Dešifruj měřítka reality!</h2>
+                    <p class="text-gray-300 text-sm md:text-base leading-relaxed mb-4">
+                        Ahoj badateli! Tvým úkolem je převést rozměry objektů zapsané ve vědeckém zápisu (např. <code class="bg-gray-800 px-1.5 py-0.5 rounded text-cyan-300 font-mono text-sm">1⋅10⁻¹⁵</code>) na hodnoty s vhodnou <strong>SI předponou</strong> (např. <code class="bg-gray-800 px-1.5 py-0.5 rounded text-cyan-300 font-mono text-sm">1 fm</code>). Správný převod odemkne kartu, odhalí fascinující fakt a uvolní jedno písmeno do tajné šifry.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input id="player-name" type="text" placeholder="Zadej své jméno pro certifikát..." class="flex-1 px-4 py-3 bg-gray-950/80 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition-colors text-sm">
+                        <button onclick="startGame()" class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:from-cyan-400 hover:to-indigo-500 transition-all text-sm uppercase tracking-wider pulse-glow-cyan shrink-0">
+                            Odstartovat hru
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <main class="lg:col-span-8 order-2 lg:order-1">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="sci-fi-title text-lg font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                        📡 Výzkumné vzorky <span id="progress-badge" class="px-2.5 py-0.5 text-xs bg-indigo-900/80 text-cyan-300 border border-indigo-500/30 rounded-full">0 / 10 Vyřešeno</span>
+                    </h3>
+                    <div class="text-xs text-gray-400">Seřazeno od mikročástic po vesmír</div>
+                </div>
+
+                <div id="game-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-60 pointer-events-none transition-all duration-300">
+                    </div>
+            </main>
+
+            <aside id="helper-panel" class="lg:col-span-4 order-1 lg:order-2 hidden lg:block">
+                <div class="sticky top-6 flex flex-col gap-6">
+                    
+                    <div class="glass-panel-glow p-5 rounded-2xl border-cyan-500/20">
+                        <h3 class="sci-fi-title text-base font-bold text-cyan-400 mb-3 flex items-center gap-2">
+                            🧪 Interaktivní simulátor předpon
+                        </h3>
+                        <p class="text-gray-400 text-xs mb-4">
+                            Vyzkoušej si, jak předpony fungují! Zadej číslo, zvol předponu a podívej se na vědecký zápis.
+                        </p>
+                        <div class="space-y-3.5">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Hodnota</label>
+                                <input type="number" id="calc-val" value="1" class="w-full px-3 py-2 bg-gray-950/80 border border-gray-800 rounded-lg text-white font-mono text-sm focus:border-cyan-500 focus:outline-none" oninput="updateSimulator()">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Předpona</label>
+                                <select id="calc-prefix" class="w-full px-3 py-2 bg-gray-950/80 border border-gray-800 rounded-lg text-white font-mono text-sm focus:border-cyan-500 focus:outline-none" onchange="updateSimulator()">
+                                    <option value="1e-15">f (femto, 10⁻¹⁵)</option>
+                                    <option value="1e-12">p (piko, 10⁻¹²)</option>
+                                    <option value="1e-9">n (nano, 10⁻⁹)</option>
+                                    <option value="1e-6">µ (mikro, 10⁻⁶)</option>
+                                    <option value="1e-3">m (mili, 10⁻³)</option>
+                                    <option value="1">m (metr, základní jednotka)</option>
+                                    <option value="1e3">k (kilo, 10³)</option>
+                                    <option value="1e6" selected>M (Mega, 10⁶)</option>
+                                    <option value="1e9">G (Giga, 10⁹)</option>
+                                    <option value="1e12">T (Tera, 10¹²)</option>
+                                    <option value="1e15">P (Peta, 10¹⁵)</option>
+                                </select>
+                            </div>
+                            <div class="p-3 bg-indigo-950/40 border border-indigo-900/50 rounded-xl">
+                                <div class="text-xs text-indigo-300 uppercase font-semibold mb-1">Výsledek v metrech</div>
+                                <div id="calc-result-scientific" class="font-mono text-cyan-300 font-bold text-sm">
+                                    1 · 10⁶ m
+                                </div>
+                                <div id="calc-result-decimal" class="font-mono text-gray-400 text-xs mt-1">
+                                    = 1 000 000 m
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 rounded-2xl">
+                        <h3 class="sci-fi-title text-base font-bold text-gray-300 mb-3 flex items-center gap-2">
+                            📖 Přehled SI předpon (Tahák)
+                        </h3>
+                        <div class="space-y-2 max-h-[350px] overflow-y-auto pr-1">
+                            
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-red-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">Peta (P)</span>
+                                    <div class="text-xs text-gray-400">biliarda</div>
+                                </div>
+                                <span class="font-mono text-red-400 text-xs">10¹⁵ m</span>
+                            </div>
+                            
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-orange-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">Tera (T)</span>
+                                    <div class="text-xs text-gray-400">bilion</div>
+                                </div>
+                                <span class="font-mono text-orange-400 text-xs">10¹² m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-yellow-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">Giga (G)</span>
+                                    <div class="text-xs text-gray-400">miliarda</div>
+                                </div>
+                                <span class="font-mono text-yellow-400 text-xs">10⁹ m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-green-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">Mega (M)</span>
+                                    <div class="text-xs text-gray-400">milion</div>
+                                </div>
+                                <span class="font-mono text-green-400 text-xs">10⁶ m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-emerald-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">kilo (k)</span>
+                                    <div class="text-xs text-gray-400">tisíc</div>
+                                </div>
+                                <span class="font-mono text-emerald-400 text-xs">10³ m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-indigo-950/30 border-l-4 border-indigo-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">metr (m)</span>
+                                    <div class="text-xs text-gray-400">základní jednotka</div>
+                                </div>
+                                <span class="font-mono text-indigo-400 text-xs">10⁰ m (1 m)</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-cyan-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">mili (m)</span>
+                                    <div class="text-xs text-gray-400">tisícina</div>
+                                </div>
+                                <span class="font-mono text-cyan-400 text-xs">10⁻³ m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-blue-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">mikro (µ)</span>
+                                    <div class="text-xs text-gray-400">miliontina</div>
+                                </div>
+                                <span class="font-mono text-blue-400 text-xs">10⁻⁶ m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-indigo-400">
+                                <div>
+                                    <span class="font-bold text-white text-sm">nano (n)</span>
+                                    <div class="text-xs text-gray-400">miliardtina</div>
+                                </div>
+                                <span class="font-mono text-indigo-300 text-xs">10⁻⁹ m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-purple-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">piko (p)</span>
+                                    <div class="text-xs text-gray-400">biliontina</div>
+                                </div>
+                                <span class="font-mono text-purple-400 text-xs">10⁻¹² m</span>
+                            </div>
+
+                            <div class="flex justify-between items-center p-2 rounded-lg bg-gray-950/30 hover:bg-gray-950/60 transition-colors border-l-4 border-pink-500">
+                                <div>
+                                    <span class="font-bold text-white text-sm">femto (f)</span>
+                                    <div class="text-xs text-gray-400">biliardtina</div>
+                                </div>
+                                <span class="font-mono text-pink-400 text-xs">10⁻¹⁵ m</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        <section class="mt-12 glass-panel-glow rounded-3xl p-6 md:p-8 relative overflow-hidden transition-all duration-300">
+            <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col items-center">
+                <h3 class="sci-fi-title text-base md:text-lg font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-300 mb-6 uppercase text-center">
+                    🔑 Hlavní dešifrovací pult
+                </h3>
+
+                <div class="flex flex-wrap gap-2 md:gap-3.5 justify-center mb-8">
+                    <div id="decrypt-slots" class="flex flex-wrap gap-3 justify-center">
+                        </div>
+                </div>
+
+                <div id="final-code-area" class="w-full max-w-lg mx-auto opacity-40 pointer-events-none transition-all duration-300">
+                    <div class="bg-gray-950/80 p-5 rounded-2xl border border-gray-800 flex flex-col md:flex-row items-center gap-3">
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs uppercase font-bold text-indigo-400 mb-1.5 text-center md:text-left">Odhalená Tajná Šifra</label>
+                            <input id="final-input" type="text" placeholder="Zadej heslo o dvou slovech..." class="w-full px-4 py-2.5 bg-gray-900 border border-indigo-950 rounded-xl text-center font-bold tracking-widest text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500 font-mono text-lg transition-all" oninput="checkFinalDecryption(this.value)">
+                        </div>
+                        <button onclick="manualVerifyFinal()" class="w-full md:w-auto px-6 py-3.5 bg-indigo-600 text-white font-bold rounded-xl text-sm uppercase tracking-wider hover:bg-indigo-500 transition-all shrink-0">
+                            Dešifrovat 🔓
+                        </button>
+                    </div>
+                    <div id="final-error-msg" class="text-red-400 text-xs text-center mt-2 font-semibold hidden">Některá písmena nebo slovo nesouhlasí. Zkus to znovu!</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="victory-screen" class="fixed inset-0 bg-gray-950/95 z-50 overflow-y-auto py-12 px-4 hidden flex items-center justify-center">
+            <div id="certificate-print-area" class="glass-panel-glow max-w-3xl w-full p-8 md:p-12 rounded-3xl text-center relative border-2 border-indigo-500/40">
+                <div class="absolute -top-12 left-1/2 -translate-x-1/2 w-24 h-24 bg-indigo-600/20 rounded-full border border-indigo-400/30 flex items-center justify-center text-5xl">
+                    🏆
+                </div>
+
+                <div class="no-print absolute top-4 right-4 flex gap-2">
+                    <button onclick="window.print()" class="px-3.5 py-2 bg-indigo-900/60 border border-indigo-700/50 rounded-xl text-xs font-semibold text-white hover:bg-indigo-800 transition-all">
+                        🖨 Vytisknout / PDF
+                    </button>
+                    <button onclick="restartGame()" class="px-3.5 py-2 bg-gray-800 border border-gray-700 rounded-xl text-xs font-semibold text-gray-300 hover:bg-gray-700 transition-all">
+                        🔄 Hrát znovu
+                    </button>
+                </div>
+
+                <h2 class="sci-fi-title text-2xl md:text-4xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-yellow-100 to-yellow-400 mt-6 mb-2">
+                    CERTIFIKÁT ÚSPĚCHU
+                </h2>
+                <div class="sub-title text-sm tracking-widest text-indigo-400 uppercase font-semibold mb-8">
+                    FYZIKÁLNÍ UNIKOVÁ HRA: SI PŘEDPONY & VĚDECKÝ ZÁPIS
+                </div>
+
+                <div class="my-6">
+                    <p class="text-gray-400 italic text-sm md:text-base">Tímto se slavnostně prohlašuje, že badatel/ka</p>
+                    <h3 id="cert-player-name" class="text-2xl md:text-4xl font-bold text-white tracking-wide my-4 border-b-2 border-dashed border-indigo-500/30 pb-3 max-w-lg mx-auto">
+                        Vesmírný průzkumník
+                    </h3>
+                    <p class="text-gray-300 text-sm md:text-base max-w-xl mx-auto leading-relaxed">
+                        úspěšně dešifroval/a kosmické kódování rozměrů od nejmenšího atomového jádra až po mezihvězdné vzdálenosti v celkovém čase
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 max-w-sm mx-auto my-8">
+                    <div class="bg-indigo-950/40 p-4 rounded-xl border border-indigo-900/40">
+                        <div class="text-xs text-indigo-400 uppercase font-semibold">Čas mise</div>
+                        <div id="cert-time" class="font-mono text-xl font-bold text-cyan-300 mt-1">00:00</div>
+                    </div>
+                    <div class="bg-indigo-950/40 p-4 rounded-xl border border-indigo-900/40">
+                        <div class="text-xs text-indigo-400 uppercase font-semibold">Počet pokusů</div>
+                        <div id="cert-tries" class="font-mono text-xl font-bold text-cyan-300 mt-1">0</div>
+                    </div>
+                </div>
+
+                <div class="text-xs text-gray-500 italic mt-8 border-t border-gray-800/60 pt-6">
+                    "Kdyby byl atom velký jako fotbalový stadion, jádro je jako zrnko hrášku uprostřed." — Tajný kód byl: <span class="font-mono text-cyan-400 font-bold">KÓD VESMÍRU</span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="mt-16 text-center text-xs text-gray-600 pb-8">
+            <p>© 2026 Fyzikální Šifrovací Simulátor. Navrženo pro interaktivní výuku fyziky na gymnáziích.</p>
+        </footer>
+
+    </div>
+
+    <div id="mobile-helper-modal" class="fixed inset-0 bg-gray-950/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 max-w-md w-full max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="sci-fi-title text-base font-bold text-white">Tahák SI předpon</h3>
+                <button onclick="toggleHelper()" class="text-gray-400 hover:text-white text-xl">✕</button>
+            </div>
+            <div id="mobile-helper-target" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // HERNÍ DATA - NÁROČNĚJŠÍ NÁPOVĚDY PRO GYMNÁZIUM (VYŽADUJÍ MYŠLENÍ)
+        const gameData = [
+            {
+                id: 1,
+                name: "Jádro atomu",
+                task: "1 ⋅ 10⁻¹⁵",
+                correctNum: "1",
+                correctPrefix: "fm",
+                code: "K",
+                funFact: "Kdyby byl atom velký jako fotbalový stadion, jádro je jako zrnko hrášku uprostřed.",
+                hint: "Podívej se do taháku, která předpona reprezentuje přesně patnáctou zápornou mocninu deseti (biliardtinu).",
+                emoji: "⚛️"
+            },
+            {
+                id: 2,
+                name: "Atom vodíku",
+                task: "1 ⋅ 10⁻¹⁰",
+                correctNum: "100",
+                correctPrefix: "pm",
+                code: "O",
+                funFact: "99,9999 % atomu je v podstatě prázdnota. Jsme složení z ničeho.",
+                hint: "Pozor, exponent -10 v taháku přímo nenajdeš. Musíš číslo upravit: o kolik řádů se zmenší exponent, když základ zvětšíš na 100? ($1\\cdot10^{-10} = 100\\cdot10^{x}$)",
+                emoji: "🎈"
+            },
+            {
+                id: 3,
+                name: "Šroubovice DNA",
+                task: "2 ⋅ 10⁻⁹",
+                correctNum: "2",
+                correctPrefix: "nm",
+                code: "D",
+                funFact: "Kdybys natáhl/a DNA z jedné své jediné buňky, bude měřit téměř 2 metry.",
+                hint: "Exponent -9 odpovídá miliardtině metru. Najdi v tabulce předponu, která má v názvu kořen pro 'miliardu' v řečtině.",
+                emoji: "🧬"
+            },
+            {
+                id: 4,
+                name: "Virus (HIV/Chřipka)",
+                task: "1 ⋅ 10⁻⁷",
+                correctNum: "100",
+                correctPrefix: "nm",
+                code: "V",
+                funFact: "Na špičku běžného krejčovského špendlíku se jich vejde přes 10 000 vedle sebe.",
+                hint: "Trik s posunem řádu: uprav zápis tak, abys dostal/a exponent dělitelný třemi (-6 nebo -9). Co je výhodnější, abys získal/a celé číslo bez nuly?",
+                emoji: "🦠"
+            },
+            {
+                id: 5,
+                name: "Tloušťka pavučiny",
+                task: "3 ⋅ 10⁻⁶",
+                correctNum: "3",
+                correctPrefix: "µm",
+                code: "E",
+                funFact: "Pavučina je neuvěřitelný inženýrský zázrak. Je pevnější než ocel stejné tloušťky.",
+                hint: "Hledáš předponu pro miliontinu metru. Používá se pro ni specifické řecké písmeno.",
+                emoji: "🕸️"
+            },
+            {
+                id: 6,
+                name: "Mrakodrap Burj Khalifa",
+                task: "8,28 ⋅ 10²",
+                correctNum: "828",
+                correctPrefix: "m",
+                code: "S",
+                funFact: "Pokud vyjedeš výtahem na vrchol dostatečně rychle, můžeš zažít západ Slunce dvakrát za sebou.",
+                hint: "Zamysli se, zda je pro hodnotu stovek metrů vůbec nutné používat nějakou předponu, nebo zda stačí čisté vyjádření v základní jednotce.",
+                emoji: "🏙️"
+            },
+            {
+                id: 7,
+                name: "Průměr Země",
+                task: "1,27 ⋅ 10⁷",
+                correctNum: "12.7",
+                correctPrefix: "Mm",
+                code: "M",
+                funFact: "Kdybys mohl prokopat tunel skrz Zemi a skočil do něj, padal bys na druhou stranu přesně 42 minut.",
+                hint: "Exponent 7 v tabulce není. Uprav hodnotu na $12,7 \\cdot 10^{x}$. Jaké číslo bude místo $x$ a která předpona mu odpovídá?",
+                emoji: "🌍"
+            },
+            {
+                id: 8,
+                name: "Vzdálenost na Měsíc",
+                task: "3,84 ⋅ 10⁸",
+                correctNum: "384",
+                correctPrefix: "Mm",
+                code: "I",
+                funFact: "Vzdálenost k Měsíci je tak gigantická, že by se do ní vešly všechny ostatní planety Sluneční soustavy vedle sebe.",
+                hint: "Převeď zápis z vědeckého na inženýrský (exponent musí být dělitelný třemi). Dostaneš $384 \\cdot 10^{6}$. Jak se jmenuje předpona pro $10^6$?",
+                emoji: "🌙"
+            },
+            {
+                id: 9,
+                name: "Vzdálenost ke Slunci",
+                task: "1,5 ⋅ 10¹¹",
+                correctNum: "150",
+                correctPrefix: "Gm",
+                code: "R",
+                funFact: "Světlu trvá přibližně 8 minut a 20 sekund, než dorazí ze Slunce na Zemi. Kdyby Slunce teď zhaslo, dozvíme se to až za víc než 8 minut!",
+                hint: "Zvětši číslo 1,5 o dva řády (na 150). O kolik řádů musíš zmenšit exponent 11, aby hodnota zůstala stejná? Hledej tuto mocninu v taháku.",
+                emoji: "☀️"
+            },
+            {
+                id: 10,
+                name: "Vzdálenost k Proxima Centauri",
+                task: "4,0 ⋅ 10¹⁶",
+                correctNum: "40",
+                correctPrefix: "Pm",
+                code: "U",
+                funFact: "Je to nejbližší hvězda k našemu Slunci. Přesto by i nejrychlejší sondě postavené lidstvem trvala cesta tam přes 70 000 let!",
+                hint: "Tato kosmická vzdálenost je nepředstavitelná! Pokud posuneš čárku o jedno místo doprava (na 40), exponent klesne na 15. Jaká předpona označuje biliardu metrů?",
+                emoji: "⭐"
+            }
+        ];
+
+        // HERNÍ STAVY
+        let playerTries = 0;
+        let elapsedSeconds = 0;
+        let gameTimerInterval = null;
+        let isGameStarted = false;
+        let soundEnabled = true;
+        const userSolutions = {};
+        const activePrefixSelections = {};
+
+        const availablePrefixes = ["fm", "pm", "nm", "µm", "mm", "m", "km", "Mm", "Gm", "Tm", "Pm"];
+
+        // AUDIO SYNTÉZA POMOCÍ WEB AUDIO API
+        function playSynthesizedSound(type) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const now = ctx.currentTime;
+                
+                if (type === 'click') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } 
+                else if (type === 'success') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    osc.frequency.setValueAtTime(1046.50, now + 0.3);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.exponentialRampToValueAtTime(0.005, now + 0.8);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.8);
+                } 
+                else if (type === 'error') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } 
+                else if (type === 'letter') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1200, now);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
+                }
+                else if (type === 'victory') {
+                    const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const oscNote = ctx.createOscillator();
+                        const gainNote = ctx.createGain();
+                        oscNote.type = 'triangle';
+                        oscNote.frequency.setValueAtTime(freq, now + idx * 0.12);
+                        gainNote.gain.setValueAtTime(0, now);
+                        gainNote.gain.linearRampToValueAtTime(0.1, now + idx * 0.12 + 0.02);
+                        gainNote.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 1.2);
+                        oscNote.connect(gainNote);
+                        gainNote.connect(ctx.destination);
+                        oscNote.start(now + idx * 0.12);
+                        oscNote.stop(now + idx * 0.12 + 1.4);
+                    });
+                }
+            } catch (e) {
+                console.warn("Audio Context zablokován prohlížečem.", e);
+            }
+        }
+
+        // SPUŠTĚNÍ HRY
+        function startGame() {
+            const nameInput = document.getElementById("player-name").value.trim();
+            const playerName = nameInput !== "" ? nameInput : "Vesmírný průzkumník";
+            
+            document.getElementById("cert-player-name").textContent = playerName;
+
+            const welcome = document.getElementById("welcome-panel");
+            welcome.style.opacity = "0";
+            welcome.style.transform = "scale(0.95)";
+            setTimeout(() => {
+                welcome.style.display = "none";
+            }, 500);
+
+            const grid = document.getElementById("game-grid");
+            grid.classList.remove("opacity-60", "pointer-events-none");
+
+            isGameStarted = true;
+            playSynthesizedSound('click');
+
+            elapsedSeconds = 0;
+            clearInterval(gameTimerInterval);
+            gameTimerInterval = setInterval(() => {
+                elapsedSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+            const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+            const formatted = `${mins}:${secs}`;
+            document.getElementById("game-timer").textContent = formatted;
+            document.getElementById("cert-time").textContent = formatted;
+        }
+
+        // TVORBA BACKGROUND HVĚZD
+        function createStars() {
+            const container = document.getElementById("stars-container");
+            const starCount = 60;
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement("div");
+                star.style.position = "absolute";
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                const size = Math.random() * 3;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.backgroundColor = "#fff";
+                star.style.borderRadius = "50%";
+                star.style.boxShadow = `0 0 ${Math.random() * 8}px #fff`;
+                star.style.opacity = Math.random();
+                container.appendChild(star);
+            }
+        }
+
+        // DYNAMICKÁ GENERACE KARET
+        function renderCards() {
+            const grid = document.getElementById("game-grid");
+            grid.innerHTML = "";
+
+            gameData.forEach(item => {
+                activePrefixSelections[item.id] = "";
+
+                const cardHTML = `
+                    <div class="card-perspective w-full min-h-[290px]" id="card-container-${item.id}">
+                        <div class="card-inner w-full h-full relative" id="card-inner-${item.id}">
+                            
+                            <div class="card-front w-full h-full glass-panel hover:border-indigo-500/50 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300">
+                                
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-2xl">${item.emoji}</span>
+                                        <span class="text-xs font-bold text-gray-500 uppercase tracking-widest font-mono">Vzorek #${item.id}</span>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-red-900/30 text-red-400 border border-red-500/20">
+                                        🔒 Uzamčeno
+                                    </span>
+                                </div>
+
+                                <div class="my-2">
+                                    <h4 class="font-bold text-white text-lg leading-tight mb-1">${item.name}</h4>
+                                    <div class="flex items-baseline gap-2 mt-2">
+                                        <span class="text-xs text-gray-400 uppercase font-bold">Zadání:</span>
+                                        <span class="font-mono text-cyan-300 text-xl font-black">${item.task} m</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 space-y-3">
+                                    <div class="flex gap-2">
+                                        <div class="w-1/2">
+                                            <label class="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Číslo</label>
+                                            <input type="text" id="input-val-${item.id}" placeholder="Např. 12.7" class="w-full px-3 py-2 bg-gray-950/80 border border-gray-800 rounded-lg text-white font-mono text-sm focus:outline-none focus:border-cyan-500 transition-colors">
+                                        </div>
+                                        <div class="w-1/2">
+                                            <label class="block text-[10px] uppercase tracking-wider text-gray-400 mb-1">Předpona</label>
+                                            <div id="selected-prefix-display-${item.id}" class="w-full h-[38px] flex items-center justify-center bg-gray-950/40 border border-gray-800 rounded-lg text-indigo-400 font-mono font-bold text-sm">
+                                                -
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] uppercase tracking-wider text-gray-500 mb-1">Výběr předpony metru:</label>
+                                        <div class="grid grid-cols-6 gap-1">
+                                            ${availablePrefixes.map(p => `
+                                                <button onclick="selectPrefix(${item.id}, '${p}')" id="btn-prefix-${item.id}-${p}" class="py-1 rounded bg-gray-950 hover:bg-gray-800 border border-gray-800 text-[11px] font-mono font-bold text-gray-400 hover:text-white transition-all">
+                                                    ${p}
+                                                </button>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+
+                                    <div id="feedback-${item.id}" class="text-[11px] text-gray-400 italic min-h-[32px] leading-tight flex items-center">
+                                        Zadej hodnotu, zvol předponu a ověř výpočet.
+                                    </div>
+
+                                    <button onclick="verifyCard(${item.id})" class="w-full py-2 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold uppercase tracking-widest rounded-xl transition-all shadow-md">
+                                        Ověřit převod 🔓
+                                    </button>
+                                </div>
+
+                            </div>
+
+                            <div class="card-back absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-950/90 to-gray-950 border border-emerald-500/40 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300">
+                                
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-2xl">${item.emoji}</span>
+                                        <span class="text-xs font-bold text-emerald-400 uppercase tracking-widest font-mono">Vyřešeno</span>
+                                    </div>
+                                    <div class="w-8 h-8 rounded-full bg-emerald-950/80 border border-emerald-500/40 flex items-center justify-center text-emerald-300 text-sm font-bold">
+                                        ✓
+                                    </div>
+                                </div>
+
+                                <div class="my-2 text-center p-3 bg-emerald-950/20 rounded-xl border border-emerald-500/20">
+                                    <span class="block text-[10px] text-emerald-400 uppercase tracking-wider">Úspěšný převod</span>
+                                    <span class="font-mono text-2xl font-black text-white tracking-wide">
+                                        ${item.correctNum} ${item.correctPrefix}
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center justify-between p-2 bg-indigo-900/20 border border-indigo-800/40 rounded-lg">
+                                    <span class="text-xs text-indigo-300 font-semibold">Odblokovaný kód:</span>
+                                    <span class="w-7 h-7 bg-indigo-500 text-white font-mono font-bold text-sm flex items-center justify-center rounded-lg shadow-lg shadow-indigo-500/40 animate-pulse">
+                                        ${item.code}
+                                    </span>
+                                </div>
+
+                                <div class="text-xs text-gray-300 italic leading-relaxed border-t border-gray-800/60 pt-2 mt-2">
+                                    💡 <strong>Zajímavost:</strong> ${item.funFact}
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += cardHTML;
+            });
+        }
+
+        function selectPrefix(cardId, prefix) {
+            playSynthesizedSound('click');
+            const currentSelected = activePrefixSelections[cardId];
+            if (currentSelected) {
+                const prevBtn = document.getElementById(`btn-prefix-${cardId}-${currentSelected}`);
+                if (prevBtn) {
+                    prevBtn.classList.remove("bg-indigo-600", "text-white", "border-indigo-500");
+                    prevBtn.classList.add("bg-gray-950", "text-gray-400", "border-gray-800");
+                }
+            }
+
+            activePrefixSelections[cardId] = prefix;
+            const newBtn = document.getElementById(`btn-prefix-${cardId}-${prefix}`);
+            if (newBtn) {
+                newBtn.classList.remove("bg-gray-950", "text-gray-400", "border-gray-800");
+                newBtn.classList.add("bg-indigo-600", "text-white", "border-indigo-500");
+            }
+
+            document.getElementById(`selected-prefix-display-${cardId}`).textContent = prefix;
+        }
+
+        // CHYTRÉ OVĚŘENÍ KARTY S DIDAKTICKÝM VYSVĚTLENÍM PREFERENCE (Pro gymnázia)
+        function verifyCard(id) {
+            playerTries++;
+            const item = gameData.find(x => x.id === id);
+            
+            const userNumRaw = document.getElementById(`input-val-${id}`).value.trim().replace(',', '.');
+            const userPrefix = activePrefixSelections[id];
+            const feedbackDiv = document.getElementById(`feedback-${id}`);
+
+            if (userNumRaw === "") {
+                playSynthesizedSound('error');
+                feedbackDiv.textContent = "❌ Chybí číselná hodnota!";
+                feedbackDiv.className = "text-[11px] text-red-400 font-semibold min-h-[32px]";
+                return;
+            }
+
+            if (userPrefix === "") {
+                playSynthesizedSound('error');
+                feedbackDiv.textContent = "❌ Vyber prosím předponu kliknutím na tlačítko!";
+                feedbackDiv.className = "text-[11px] text-red-400 font-semibold min-h-[32px]";
+                return;
+            }
+
+            const userNum = parseFloat(userNumRaw);
+            if (isNaN(userNum)) {
+                playSynthesizedSound('error');
+                feedbackDiv.textContent = "❌ Zadaná hodnota není platné číslo!";
+                feedbackDiv.className = "text-[11px] text-red-400 font-semibold min-h-[32px]";
+                return;
+            }
+
+            // Přesné porovnání s ideálním (očekávaným) tvarem
+            const isIdealNum = Math.abs(userNum - parseFloat(item.correctNum)) < 0.001;
+            const isIdealPrefix = userPrefix === item.correctPrefix;
+
+            if (isIdealNum && isIdealPrefix) {
+                userSolutions[id] = true;
+                playSynthesizedSound('success');
+                const innerCard = document.getElementById(`card-inner-${id}`);
+                innerCard.classList.add("is-solved");
+                revealLetterInSlots(id, item.code);
+                updateOverallProgress();
+                return;
+            }
+
+            // KONTROLA ALTERNATIVNÍCH MATEMATICKY SPRÁVNÝCH MATIC (Např. 0.384 Gm místo 384 Mm)
+            let isAlternativeButValid = false;
+            if (id === 2 && userNum === 0.1 && userPrefix === "nm") isAlternativeButValid = true;
+            if (id === 4 && userNum === 0.1 && userPrefix === "µm") isAlternativeButValid = true;
+            if (id === 7 && userNum === 12700 && userPrefix === "km") isAlternativeButValid = true;
+            if (id === 7 && userNum === 0.0127 && userPrefix === "Gm") isAlternativeButValid = true;
+            if (id === 8 && userNum === 0.384 && userPrefix === "Gm") isAlternativeValid = true;
+            if (id === 9 && userNum === 0.15 && userPrefix === "Tm") isAlternativeButValid = true;
+            if (id === 10 && userNum === 0.04 && userPrefix === "Tm") isAlternativeButValid = true;
+
+            if (isAlternativeButValid) {
+                playSynthesizedSound('error');
+                feedbackDiv.textContent = `⚠️ Matematicky správně, ale ve fyzice preferujeme inženýrský zápis s celým číslem (mezi 1 a 999) před čárkou, ne s nulou či tisíci. Uprav převod tak, abys získal/a celé optimální číslo!`;
+                feedbackDiv.className = "text-[11px] text-orange-400 font-medium leading-tight mt-1 min-h-[32px]";
+            } else {
+                playSynthesizedSound('error');
+                feedbackDiv.textContent = `❌ Nesprávně. ${item.hint}`;
+                feedbackDiv.className = "text-[11px] text-yellow-300 font-medium leading-tight mt-1 min-h-[32px]";
+            }
+        }
+
+        function initSecretCodeSlots() {
+            const container = document.getElementById("decrypt-slots");
+            container.innerHTML = "";
+
+            gameData.forEach(item => {
+                const slot = document.createElement("div");
+                slot.id = `code-slot-${item.id}`;
+                slot.className = "w-10 h-12 md:w-12 md:h-14 rounded-xl bg-gray-950 border-2 border-gray-800 flex flex-col items-center justify-center transition-all duration-500 font-mono";
+                slot.innerHTML = `
+                    <span id="slot-letter-${item.id}" class="text-gray-700 font-black text-lg md:text-xl font-mono">?</span>
+                    <span class="text-[8px] text-gray-500 mt-0.5">${item.id}</span>
+                `;
+                container.appendChild(slot);
+            });
+        }
+
+        function revealLetterInSlots(cardId, letter) {
+            const slot = document.getElementById(`code-slot-${cardId}`);
+            const letterSpan = document.getElementById(`slot-letter-${cardId}`);
+            
+            playSynthesizedSound('letter');
+
+            slot.className = "w-10 h-12 md:w-12 md:h-14 rounded-xl bg-indigo-950 border-2 border-cyan-400 text-cyan-300 flex flex-col items-center justify-center font-mono shadow-lg shadow-cyan-500/20 scale-110";
+            letterSpan.textContent = letter;
+            letterSpan.className = "text-white font-black text-lg md:text-xl font-mono animate-pulse";
+
+            setTimeout(() => {
+                slot.classList.remove("scale-110");
+            }, 300);
+        }
+
+        function updateOverallProgress() {
+            const total = gameData.length;
+            const solved = Object.keys(userSolutions).length;
+
+            document.getElementById("progress-badge").textContent = `${solved} / ${total} Vyřešeno`;
+
+            if (solved === total) {
+                const finalArea = document.getElementById("final-code-area");
+                finalArea.classList.remove("opacity-40", "pointer-events-none");
+                finalArea.classList.add("pulse-glow-indigo");
+                
+                setTimeout(() => {
+                    playSynthesizedSound('victory');
+                }, 500);
+            }
+        }
+
+        function manualVerifyFinal() {
+            const val = document.getElementById("final-input").value;
+            checkFinalDecryption(val, true);
+        }
+
+        function checkFinalDecryption(value, forceClick = false) {
+            const clean = (str) => str.toLowerCase()
+                .replace(/\s+/g, '')
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            const normalizedInput = clean(value);
+            const correctAnswer = "kodvesmiru";
+
+            const errorMsg = document.getElementById("final-error-msg");
+
+            if (normalizedInput === correctAnswer) {
+                errorMsg.classList.add("hidden");
+                triggerVictory();
+            } else {
+                if (forceClick) {
+                    playSynthesizedSound('error');
+                    errorMsg.classList.remove("hidden");
+                }
+            }
+        }
+
+        function triggerVictory() {
+            clearInterval(gameTimerInterval);
+            playSynthesizedSound('victory');
+            startConfetti();
+
+            document.getElementById("cert-tries").textContent = playerTries;
+
+            setTimeout(() => {
+                const winScreen = document.getElementById("victory-screen");
+                winScreen.classList.remove("hidden");
+                winScreen.classList.add("flex");
+            }, 800);
+        }
+
+        function restartGame() {
+            document.getElementById("victory-screen").className = "fixed inset-0 bg-gray-950/95 z-50 overflow-y-auto py-12 px-4 hidden";
+            
+            playerTries = 0;
+            elapsedSeconds = 0;
+            isGameStarted = false;
+            for (let k in userSolutions) delete userSolutions[k];
+            for (let k in activePrefixSelections) activePrefixSelections[k] = "";
+
+            initSecretCodeSlots();
+            const finalArea = document.getElementById("final-code-area");
+            finalArea.classList.add("opacity-40", "pointer-events-none");
+            finalArea.classList.remove("pulse-glow-indigo");
+            document.getElementById("final-input").value = "";
+
+            const welcome = document.getElementById("welcome-panel");
+            welcome.style.display = "block";
+            welcome.style.opacity = "1";
+            welcome.style.transform = "scale(1)";
+
+            const grid = document.getElementById("game-grid");
+            grid.classList.add("opacity-60", "pointer-events-none");
+
+            renderCards();
+            updateOverallProgress();
+            updateTimerDisplay();
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById("btn-sound-toggle");
+            const icon = document.getElementById("sound-icon");
+            if (soundEnabled) {
+                icon.textContent = "🔊";
+                btn.className = "p-2.5 rounded-lg bg-gray-800/80 border border-gray-700 text-gray-300 hover:text-cyan-400 transition-all flex items-center gap-2 text-sm";
+                playSynthesizedSound('click');
+            } else {
+                icon.textContent = "🔇";
+                btn.className = "p-2.5 rounded-lg bg-red-950/40 border border-red-900/40 text-red-400 hover:text-red-300 transition-all flex items-center gap-2 text-sm";
+            }
+        }
+
+        function toggleHelper() {
+            playSynthesizedSound('click');
+            const isMobile = window.innerWidth < 1024;
+            if (isMobile) {
+                const modal = document.getElementById("mobile-helper-modal");
+                if (modal.classList.contains("hidden")) {
+                    const src = document.getElementById("helper-panel").querySelector(".glass-panel > div");
+                    document.getElementById("mobile-helper-target").innerHTML = src.innerHTML;
+                    modal.classList.remove("hidden");
+                } else {
+                    modal.classList.add("hidden");
+                }
+            } else {
+                document.getElementById("helper-panel").scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function updateSimulator() {
+            const val = parseFloat(document.getElementById("calc-val").value) || 0;
+            const multiplier = parseFloat(document.getElementById("calc-prefix").value);
+            const meters = val * multiplier;
+
+            const resScientific = document.getElementById("calc-result-scientific");
+            const resDecimal = document.getElementById("calc-result-decimal");
+
+            if (meters === 0) {
+                resScientific.innerHTML = `0 m`;
+                resDecimal.textContent = `= 0 m`;
+                return;
+            }
+
+            const exp = Math.floor(Math.log10(Math.abs(meters)));
+            const leadDigit = (meters / Math.pow(10, exp)).toFixed(3).replace(/\.?0+$/, "");
+            
+            resScientific.innerHTML = `${leadDigit} · 10<sup>${exp}</sup> m`;
+            
+            if (Math.abs(meters) >= 0.0001 && Math.abs(meters) <= 1000000000) {
+                resDecimal.textContent = `= ${meters.toLocaleString('cs-CZ')} m`;
+            } else {
+                resDecimal.textContent = `= ${meters.toExponential(4).replace('e', ' · 10^')} m`;
+            }
+        }
+
+        // MOTOR NA KONFETY
+        let confettiActive = false;
+        const confettiCanvas = document.getElementById("confetti-canvas");
+        const confettiCtx = confettiCanvas.getContext("2d");
+        let confettiArray = [];
+
+        function resizeConfettiCanvas() {
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+        }
+
+        function createConfettiPiece() {
+            return {
+                x: Math.random() * confettiCanvas.width,
+                y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+                r: Math.random() * 6 + 4,
+                d: Math.random() * confettiCanvas.height,
+                color: `hsl(${Math.random() * 360}, 90%, 50%)`,
+                tilt: Math.random() * 10 - 5,
+                tiltAngleIncremental: Math.random() * 0.07 + 0.02,
+                tiltAngle: 0
+            };
+        }
+
+        function startConfetti() {
+            resizeConfettiCanvas();
+            confettiArray = [];
+            for (let i = 0; i < 150; i++) {
+                confettiArray.push(createConfettiPiece());
+            }
+            confettiActive = true;
+            animateConfetti();
+        }
+
+        function animateConfetti() {
+            if (!confettiActive) return;
+            requestAnimationFrame(animateConfetti);
+            confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+
+            confettiArray.forEach((p, index) => {
+                p.tiltAngle += p.tiltAngleIncremental;
+                p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+                p.tilt = Math.sin(p.tiltAngle - index / 3) * 15;
+
+                confettiCtx.beginPath();
+                confettiCtx.lineWidth = p.r;
+                confettiCtx.strokeStyle = p.color;
+                confettiCtx.moveTo(p.x + p.tilt + p.r / 2, p.y);
+                confettiCtx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
+                confettiCtx.stroke();
+
+                if (p.y > confettiCanvas.height) {
+                    confettiArray[index] = createConfettiPiece();
+                    confettiArray[index].y = -20;
+                }
+            });
+        }
+
+        window.onload = function() {
+            createStars();
+            renderCards();
+            initSecretCodeSlots();
+            updateSimulator();
+            
+            window.addEventListener('resize', () => {
+                if (confettiActive) resizeConfettiCanvas();
+            });
+        };
+    </script>
+</body>
+</html>
