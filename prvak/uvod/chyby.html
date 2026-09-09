@@ -1,156 +1,263 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-    <meta charset="UTF-8">
-    <!-- Důležité pro správné zobrazení na mobilu -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chyby měření - Třídění</title>
-    
-    <!-- Skript a styly pro podporu Drag and Drop na dotykových displejích (Polyfill) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
-    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
-    
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 15px; margin: 0; }
-        h1 { text-align: center; color: #333; font-size: 1.5rem; }
-        p { text-align: center; font-size: 0.9rem; margin-bottom: 20px; }
-        
-        .container { display: flex; flex-direction: row; justify-content: space-between; gap: 15px; }
-        
-        .dropzone { 
-            flex: 1; 
-            background: #fff; 
-            border: 2px dashed #ccc; 
-            border-radius: 8px; 
-            padding: 10px; 
-            min-height: 200px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-        .dropzone h2 { text-align: center; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 5px; }
-        
-        .deck { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #eef2f5; padding: 15px; border-radius: 8px; min-height: 100px; }
-        
-        .card { 
-            background: #fff; 
-            border: 1px solid #ddd; 
-            border-left: 5px solid #007bff;
-            padding: 10px; 
-            border-radius: 4px; 
-            cursor: grab; 
-            user-select: none;
-            width: calc(33.333% - 10px);
-            box-sizing: border-box;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 0.85rem;
-            /* Zabrání nechtěnému označování textu při tažení na mobilu */
-            touch-action: none; 
-        }
-        .card:active { cursor: grabbing; }
-        
-        .correct { border-left-color: #28a745; background-color: #d4edda; }
-        .incorrect { border-left-color: #dc3545; background-color: #f8d7da; }
-        
-        button { display: block; margin: 20px auto; padding: 12px 25px; font-size: 1.1rem; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; max-width: 300px; }
-        button:hover { background: #0056b3; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chyby měření - Kvíz</title>
 
-        /* Úpravy pro mobily (pokud je displej užší než 768px) */
-        @media (max-width: 768px) {
-            .container { flex-direction: column; } /* Sloupce se seřadí pod sebe */
-            .card { width: 100%; } /* Kartičky budou přes celou šířku, aby se dobře četly */
-            .dropzone { min-height: 120px; } /* Zmenšíme minimální výšku zón */
-        }
-    </style>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        background: linear-gradient(135deg, #1b2735, #090a0f);
+        background-attachment: fixed;
+        min-height: 100vh;
+        color: white;
+        padding-bottom: 50px;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: auto;
+        padding: 30px 15px;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    p.subtitle {
+        text-align: center;
+        color: rgba(255,255,255,0.7);
+        margin-bottom: 30px;
+        font-size: 0.95rem;
+    }
+
+    .card {
+        background: rgba(255,255,255,0.1);
+        padding: 20px;
+        margin: 15px 0;
+        border-radius: 12px;
+        transition: 0.3s;
+    }
+
+    .card-text {
+        font-size: 1rem;
+        margin-bottom: 15px;
+        line-height: 1.4;
+    }
+
+    /* Kontejner pro tlačítka možností */
+    .options {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* Samotná tlačítka (štítky) */
+    .option-btn {
+        flex: 1;
+        min-width: 30%;
+        background: rgba(255,255,255,0.15);
+        color: white;
+        border: 2px solid transparent;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.9rem;
+        transition: 0.2s;
+        text-align: center;
+    }
+
+    .option-btn:hover {
+        background: rgba(255,255,255,0.25);
+    }
+
+    /* Stav, kdy student na tlačítko klikne (vybere ho) */
+    .option-btn.selected {
+        background: #007bff;
+        border-color: #007bff;
+        font-weight: 600;
+    }
+
+    /* Stavy po kontrole (správně / špatně) */
+    .option-btn.correct {
+        background: #28a745 !important;
+        border-color: #28a745 !important;
+        color: white;
+    }
+
+    .option-btn.incorrect {
+        background: #dc3545 !important;
+        border-color: #dc3545 !important;
+        opacity: 0.8;
+    }
+
+    /* Tlačítko pro vyhodnocení */
+    .submit-btn {
+        display: block;
+        width: 100%;
+        max-width: 300px;
+        margin: 40px auto 20px;
+        padding: 15px 20px;
+        background: white;
+        color: #1c3d5a;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+        transition: 0.3s;
+    }
+
+    .submit-btn:hover {
+        background: #e0e0e0;
+        transform: translateY(-2px);
+    }
+
+    .back {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        color: rgba(255,255,255,0.7);
+        text-decoration: none;
+        padding: 10px 0;
+    }
+
+    .back:hover {
+        color: white;
+    }
+
+    #result-msg {
+        text-align: center;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-top: 15px;
+        min-height: 30px;
+    }
+
+    /* Aby se tlačítka na malých mobilech (např. iPhone SE) přeskládala pod sebe, pokud by byla moc úzká */
+    @media (max-width: 480px) {
+        .options { flex-direction: column; }
+        .option-btn { width: 100%; padding: 12px; }
+    }
+</style>
 </head>
 <body>
 
+<div class="container">
     <h1>Rozlišování chyb měření</h1>
-    <p>Přetáhni kartičky se situacemi do správných kategorií.</p>
+    <p class="subtitle">U každé situace vyber, o jaký typ chyby se jedná.</p>
 
-    <!-- Zásobník karet -->
-    <div class="deck" id="deck" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+    <!-- Sem se vygenerují otázky přes JavaScript -->
+    <div id="quiz-container"></div>
 
-    <!-- Cílové zóny -->
-    <div class="container">
-        <div class="dropzone" id="hruba" data-category="hruba" ondragover="allowDrop(event)" ondrop="drop(event)">
-            <h2>Hrubá chyba</h2>
-        </div>
-        <div class="dropzone" id="systematicka" data-category="systematicka" ondragover="allowDrop(event)" ondrop="drop(event)">
-            <h2>Systematická chyba</h2>
-        </div>
-        <div class="dropzone" id="nahodna" data-category="nahodna" ondragover="allowDrop(event)" ondrop="drop(event)">
-            <h2>Náhodná chyba</h2>
-        </div>
-    </div>
+    <button class="submit-btn" onclick="checkAnswers()">Zkontrolovat odpovědi</button>
+    
+    <div id="result-msg"></div>
 
-    <button onclick="checkAnswers()">Zkontrolovat odpovědi</button>
+    <a class="back" href="../index.html">← zpět na kvintu</a>
+</div>
 
-    <script>
-        // Aktivace podpory pro mobily (Polyfill)
-        MobileDragDrop.polyfill({
-            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+<script>
+    // Seznam otázek (stejný jako minule)
+    const cardsData = [
+        { id: "c1", type: "nahodna", text: "Reakční doba: Při měření času stopkami pokaždé stiskneš tlačítko o malou chvilku dřív nebo později." },
+        { id: "c2", type: "systematicka", text: "Nevynulované měřidlo: Ručička ampérmetru není na nule ještě předtím, než ho zapojíš do obvodu." },
+        { id: "c3", type: "hruba", text: "Přepis: Na displeji bylo 12,5 s, ale do sešitu sis omylem zapsal(a) 21,5 s." },
+        { id: "c4", type: "nahodna", text: "Kolísání: Při vážení na citlivé váze hodnota neustále přeskakuje mezi 5,13 g a 5,14 g." },
+        { id: "c5", type: "systematicka", text: "Chyba paralaxy: Odečítáš objem v odměrném válci, ale díváš se na stupnici zešikma." },
+        { id: "c6", type: "hruba", text: "Záměna veličin: Místo průměru drátu jsi do vzorce omylem dosadil(a) jeho poloměr." },
+        { id: "c7", type: "systematicka", text: "Opotřebení: Kraj pravítka je ošoupaný a ty začínáš měřit od kraje místo od nuly." },
+        { id: "c8", type: "hruba", text: "Záškodnictví: Při měření teploty jsi omylem chytil(a) teploměr za baňku s lihem a zahřál(a) ho rukou." }
+    ];
+
+    // Zamíchání pole, aby to nebylo pokaždé ve stejném pořadí
+    cardsData.sort(() => Math.random() - 0.5);
+
+    const container = document.getElementById('quiz-container');
+
+    // Vykreslení karet
+    cardsData.forEach(card => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card';
+        cardDiv.dataset.correctType = card.type; // Uložíme si správnou odpověď do datového atributu
+
+        // HTML struktura jedné kartičky
+        cardDiv.innerHTML = `
+            <div class="card-text">${card.text}</div>
+            <div class="options">
+                <button class="option-btn" data-value="hruba" onclick="selectOption(this)">Hrubá</button>
+                <button class="option-btn" data-value="systematicka" onclick="selectOption(this)">Systematická</button>
+                <button class="option-btn" data-value="nahodna" onclick="selectOption(this)">Náhodná</button>
+            </div>
+        `;
+        container.appendChild(cardDiv);
+    });
+
+    // Funkce pro výběr možnosti
+    function selectOption(clickedBtn) {
+        // Najdeme všechna tlačítka v rámci aktuální kartičky
+        const siblings = clickedBtn.parentElement.querySelectorAll('.option-btn');
+        
+        // Všem odebereme třídu selected (odškrtneme je) a stavové třídy
+        siblings.forEach(btn => {
+            btn.classList.remove('selected', 'correct', 'incorrect');
         });
 
-        // Aby prohlížeč nezasahoval do scrollování během přesouvání
-        window.addEventListener('touchmove', function() {}, {passive: false});
+        // Kliknutému tlačítku přidáme třídu selected
+        clickedBtn.classList.add('selected');
+    }
 
-        const cardsData = [
-            { id: "c1", type: "nahodna", text: "Reakční doba: Při měření času stopkami pokaždé stiskneš tlačítko o malou chvilku dřív nebo později." },
-            { id: "c2", type: "systematicka", text: "Nevynulované měřidlo: Ručička ampérmetru není na nule ještě předtím, než ho zapojíš do obvodu." },
-            { id: "c3", type: "hruba", text: "Přepis: Na displeji bylo 12,5 s, ale do sešitu sis omylem zapsal(a) 21,5 s." },
-            { id: "c4", type: "nahodna", text: "Kolísání: Při vážení na citlivé váze hodnota neustále přeskakuje mezi 5,13 g a 5,14 g." },
-            { id: "c5", type: "systematicka", text: "Chyba paralaxy: Odečítáš objem v odměrném válci, ale díváš se na stupnici zešikma." },
-            { id: "c6", type: "hruba", text: "Záměna veličin: Místo průměru drátu jsi do vzorce omylem dosadil(a) jeho poloměr." },
-            { id: "c7", type: "systematicka", text: "Opotřebení: Kraj pravítka je ošoupaný a ty začínáš měřit od kraje místo od nuly." },
-            { id: "c8", type: "hruba", text: "Záškodnictví: Při měření teploty jsi omylem chytil(a) teploměr za baňku s lihem a zahřál(a) ho rukou." }
-        ];
+    // Funkce pro vyhodnocení
+    function checkAnswers() {
+        const cards = document.querySelectorAll('.card');
+        let score = 0;
+        let answered = 0;
 
-        // Zbytek logiky zůstává stejný
-        cardsData.sort(() => Math.random() - 0.5);
-        const deck = document.getElementById('deck');
-
-        cardsData.forEach(card => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.id = card.id;
-            div.draggable = true;
-            div.dataset.type = card.type;
-            div.innerText = card.text;
-            div.ondragstart = drag;
-            deck.appendChild(div);
-        });
-
-        function allowDrop(ev) { ev.preventDefault(); }
-        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
-
-        function drop(ev) {
-            ev.preventDefault();
-            const data = ev.dataTransfer.getData("text");
-            const element = document.getElementById(data);
+        cards.forEach(card => {
+            const correctType = card.dataset.correctType;
+            const selectedBtn = card.querySelector('.option-btn.selected');
             
-            if(ev.target.classList.contains('dropzone') || ev.target.classList.contains('deck')) {
-                ev.target.appendChild(element);
-            } else if (ev.target.closest('.dropzone') || ev.target.closest('.deck')) {
-                const targetZone = ev.target.closest('.dropzone') || ev.target.closest('.deck');
-                targetZone.appendChild(element);
-            }
-            element.classList.remove('correct', 'incorrect');
-        }
+            // Očistíme případné předchozí barvy u všech tlačítek v kartě
+            const allBtns = card.querySelectorAll('.option-btn');
+            allBtns.forEach(btn => btn.classList.remove('correct', 'incorrect'));
 
-        function checkAnswers() {
-            const cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                const parent = card.parentElement;
-                if (parent.id === 'deck') return; 
+            if (selectedBtn) {
+                answered++;
+                const selectedType = selectedBtn.dataset.value;
                 
-                if (card.dataset.type === parent.dataset.category) {
-                    card.classList.remove('incorrect');
-                    card.classList.add('correct');
+                if (selectedType === correctType) {
+                    selectedBtn.classList.add('correct');
+                    score++;
                 } else {
-                    card.classList.remove('correct');
-                    card.classList.add('incorrect');
+                    selectedBtn.classList.add('incorrect');
+                    // Ukážeme studentovi, která byla ta správná
+                    const correctBtn = card.querySelector(`.option-btn[data-value="${correctType}"]`);
+                    correctBtn.classList.add('correct');
                 }
-            });
+            }
+        });
+
+        const msgBox = document.getElementById('result-msg');
+        if (answered < cards.length) {
+            msgBox.style.color = "#ffc107"; // Žlutá
+            msgBox.innerText = `Vyplněno ${answered} z ${cards.length}. Zkus doplnit zbytek!`;
+        } else {
+            msgBox.style.color = score === cards.length ? "#28a745" : "white"; // Zelená nebo bílá
+            msgBox.innerText = `Tvůj výsledek: ${score} / ${cards.length}`;
         }
-    </script>
+    }
+</script>
+
 </body>
 </html>
