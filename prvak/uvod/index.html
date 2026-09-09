@@ -2,22 +2,32 @@
 <html lang="cs">
 <head>
 <meta charset="UTF-8">
+<!-- TENTO ŘÁDEK JE PRO MOBILY ABSOLUTNĚ KLÍČOVÝ -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Úvod do fyziky</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 
 <style>
+/* Reset pro správné počítání velikostí prvků (důležité na malých displejích) */
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: 'Poppins', sans-serif;
     margin: 0;
+    /* Oprava pozadí pro mobily */
     background: linear-gradient(135deg, #1b2735, #090a0f);
+    background-attachment: fixed; /* Zabrání rozbití pozadí při scrollování */
+    min-height: 100vh; /* Zaručí, že pozadí vyplní 100 % výšky displeje i u krátkého obsahu */
     color: white;
 }
 
 .container {
     max-width: 900px;
     margin: auto;
-    padding: 60px 20px;
+    padding: 40px 20px; /* Trochu jsem zmenšil horní odsazení, na mobilu 60px zabírá zbytečně moc místa */
 }
 
 .card {
@@ -28,6 +38,7 @@ body {
     transition: 0.3s;
 }
 
+/* Na mobilu se hover projeví až při dotyku, ale ničemu to nevadí */
 .card:hover {
     transform: translateY(-5px);
     background: rgba(255,255,255,0.2);
@@ -36,16 +47,23 @@ body {
 .button {
     display: inline-block;
     margin-top: 10px;
-    padding: 10px 15px;
+    padding: 12px 20px; /* Zvětšil jsem oblast kliknutí (tzv. touch target), aby se na to lépe ťukalo prstem */
     background: white;
     color: #1c3d5a;
     border-radius: 8px;
     text-decoration: none;
+    font-weight: 600;
 }
 
 .back {
     margin-top: 40px;
     display: inline-block;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    padding: 10px 0; /* Zvětšení oblasti pro dotyk */
+}
+
+.back:hover {
     color: white;
 }
 </style>
@@ -64,10 +82,9 @@ body {
 </div>
 
 <div class="card">
-    <h2>🙁 Chyby </h2>
+    <h2>🙁 Chyby měření</h2>
     <a class="button" href="chyby.html">Otevřít</a>
 </div>
-
 
 <a class="back" href="../index.html">← zpět na kvintu</a>
 
