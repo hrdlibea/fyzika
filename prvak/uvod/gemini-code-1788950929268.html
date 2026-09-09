@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <!-- Důležité pro správné zobrazení na mobilu -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chyby měření - Třídění</title>
+    
+    <!-- Skript a styly pro podporu Drag and Drop na dotykových displejích (Polyfill) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/mobile-drag-drop@2.3.0-rc.2/index.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 15px; margin: 0; }
+        h1 { text-align: center; color: #333; font-size: 1.5rem; }
+        p { text-align: center; font-size: 0.9rem; margin-bottom: 20px; }
+        
+        .container { display: flex; flex-direction: row; justify-content: space-between; gap: 15px; }
+        
+        .dropzone { 
+            flex: 1; 
+            background: #fff; 
+            border: 2px dashed #ccc; 
+            border-radius: 8px; 
+            padding: 10px; 
+            min-height: 200px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .dropzone h2 { text-align: center; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 5px; }
+        
+        .deck { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: #eef2f5; padding: 15px; border-radius: 8px; min-height: 100px; }
+        
+        .card { 
+            background: #fff; 
+            border: 1px solid #ddd; 
+            border-left: 5px solid #007bff;
+            padding: 10px; 
+            border-radius: 4px; 
+            cursor: grab; 
+            user-select: none;
+            width: calc(33.333% - 10px);
+            box-sizing: border-box;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            font-size: 0.85rem;
+            /* Zabrání nechtěnému označování textu při tažení na mobilu */
+            touch-action: none; 
+        }
+        .card:active { cursor: grabbing; }
+        
+        .correct { border-left-color: #28a745; background-color: #d4edda; }
+        .incorrect { border-left-color: #dc3545; background-color: #f8d7da; }
+        
+        button { display: block; margin: 20px auto; padding: 12px 25px; font-size: 1.1rem; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; width: 100%; max-width: 300px; }
+        button:hover { background: #0056b3; }
+
+        /* Úpravy pro mobily (pokud je displej užší než 768px) */
+        @media (max-width: 768px) {
+            .container { flex-direction: column; } /* Sloupce se seřadí pod sebe */
+            .card { width: 100%; } /* Kartičky budou přes celou šířku, aby se dobře četly */
+            .dropzone { min-height: 120px; } /* Zmenšíme minimální výšku zón */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Rozlišování chyb měření</h1>
+    <p>Přetáhni kartičky se situacemi do správných kategorií.</p>
+
+    <!-- Zásobník karet -->
+    <div class="deck" id="deck" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+
+    <!-- Cílové zóny -->
+    <div class="container">
+        <div class="dropzone" id="hruba" data-category="hruba" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>Hrubá chyba</h2>
+        </div>
+        <div class="dropzone" id="systematicka" data-category="systematicka" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>Systematická chyba</h2>
+        </div>
+        <div class="dropzone" id="nahodna" data-category="nahodna" ondragover="allowDrop(event)" ondrop="drop(event)">
+            <h2>Náhodná chyba</h2>
+        </div>
+    </div>
+
+    <button onclick="checkAnswers()">Zkontrolovat odpovědi</button>
+
+    <script>
+        // Aktivace podpory pro mobily (Polyfill)
+        MobileDragDrop.polyfill({
+            dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+        });
+
+        // Aby prohlížeč nezasahoval do scrollování během přesouvání
+        window.addEventListener('touchmove', function() {}, {passive: false});
+
+        const cardsData = [
+            { id: "c1", type: "nahodna", text: "Reakční doba: Při měření času stopkami pokaždé stiskneš tlačítko o malou chvilku dřív nebo později." },
+            { id: "c2", type: "systematicka", text: "Nevynulované měřidlo: Ručička ampérmetru není na nule ještě předtím, než ho zapojíš do obvodu." },
+            { id: "c3", type: "hruba", text: "Přepis: Na displeji bylo 12,5 s, ale do sešitu sis omylem zapsal(a) 21,5 s." },
+            { id: "c4", type: "nahodna", text: "Kolísání: Při vážení na citlivé váze hodnota neustále přeskakuje mezi 5,13 g a 5,14 g." },
+            { id: "c5", type: "systematicka", text: "Chyba paralaxy: Odečítáš objem v odměrném válci, ale díváš se na stupnici zešikma." },
+            { id: "c6", type: "hruba", text: "Záměna veličin: Místo průměru drátu jsi do vzorce omylem dosadil(a) jeho poloměr." },
+            { id: "c7", type: "systematicka", text: "Opotřebení: Kraj pravítka je ošoupaný a ty začínáš měřit od kraje místo od nuly." },
+            { id: "c8", type: "hruba", text: "Záškodnictví: Při měření teploty jsi omylem chytil(a) teploměr za baňku s lihem a zahřál(a) ho rukou." }
+        ];
+
+        // Zbytek logiky zůstává stejný
+        cardsData.sort(() => Math.random() - 0.5);
+        const deck = document.getElementById('deck');
+
+        cardsData.forEach(card => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.id = card.id;
+            div.draggable = true;
+            div.dataset.type = card.type;
+            div.innerText = card.text;
+            div.ondragstart = drag;
+            deck.appendChild(div);
+        });
+
+        function allowDrop(ev) { ev.preventDefault(); }
+        function drag(ev) { ev.dataTransfer.setData("text", ev.target.id); }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const data = ev.dataTransfer.getData("text");
+            const element = document.getElementById(data);
+            
+            if(ev.target.classList.contains('dropzone') || ev.target.classList.contains('deck')) {
+                ev.target.appendChild(element);
+            } else if (ev.target.closest('.dropzone') || ev.target.closest('.deck')) {
+                const targetZone = ev.target.closest('.dropzone') || ev.target.closest('.deck');
+                targetZone.appendChild(element);
+            }
+            element.classList.remove('correct', 'incorrect');
+        }
+
+        function checkAnswers() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                const parent = card.parentElement;
+                if (parent.id === 'deck') return; 
+                
+                if (card.dataset.type === parent.dataset.category) {
+                    card.classList.remove('incorrect');
+                    card.classList.add('correct');
+                } else {
+                    card.classList.remove('correct');
+                    card.classList.add('incorrect');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
