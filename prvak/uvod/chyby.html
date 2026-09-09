@@ -36,8 +36,34 @@
     p.subtitle {
         text-align: center;
         color: rgba(255,255,255,0.7);
-        margin-bottom: 30px;
+        margin-bottom: 25px;
         font-size: 0.95rem;
+    }
+
+    /* Box pro teorii na začátku */
+    .info-box {
+        background: rgba(255,255,255,0.05);
+        border-left: 4px solid #007bff;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+
+    .info-box h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #66b2ff;
+        font-size: 1.2rem;
+    }
+
+    .info-box p {
+        margin: 8px 0;
+        font-size: 0.95rem;
+        line-height: 1.5;
+    }
+
+    .info-box strong {
+        color: white;
     }
 
     .card {
@@ -145,7 +171,7 @@
         min-height: 30px;
     }
 
-    /* Aby se tlačítka na malých mobilech (např. iPhone SE) přeskládala pod sebe, pokud by byla moc úzká */
+    /* Aby se tlačítka na malých mobilech (např. iPhone SE) přeskládala pod sebe */
     @media (max-width: 480px) {
         .options { flex-direction: column; }
         .option-btn { width: 100%; padding: 12px; }
@@ -156,7 +182,15 @@
 
 <div class="container">
     <h1>Rozlišování chyb měření</h1>
-    <p class="subtitle">U každé situace vyber, o jaký typ chyby se jedná.</p>
+    <p class="subtitle">Přečti si pozorně situace a u každé vyber, o jaký typ chyby se jedná.</p>
+
+    <!-- Teoretický úvod -->
+    <div class="info-box">
+        <h3>📖 Rychlé opáčko</h3>
+        <p><strong>Náhodná chyba:</strong> Lze ji zmenšit opakováním měření.</p>
+        <p><strong>Systematická chyba:</strong> Zkresluje výsledek stále stejným směrem, opakování nepomůže.</p>
+        <p><strong>Hrubá chyba:</strong> Vzniká nepozorností, výsledek je nutné vyřadit.</p>
+    </div>
 
     <!-- Sem se vygenerují otázky přes JavaScript -->
     <div id="quiz-container"></div>
@@ -169,16 +203,25 @@
 </div>
 
 <script>
-    // Seznam otázek (stejný jako minule)
+    // Tvé konkrétní situace
     const cardsData = [
-        { id: "c1", type: "nahodna", text: "Reakční doba: Při měření času stopkami pokaždé stiskneš tlačítko o malou chvilku dřív nebo později." },
-        { id: "c2", type: "systematicka", text: "Nevynulované měřidlo: Ručička ampérmetru není na nule ještě předtím, než ho zapojíš do obvodu." },
-        { id: "c3", type: "hruba", text: "Přepis: Na displeji bylo 12,5 s, ale do sešitu sis omylem zapsal(a) 21,5 s." },
-        { id: "c4", type: "nahodna", text: "Kolísání: Při vážení na citlivé váze hodnota neustále přeskakuje mezi 5,13 g a 5,14 g." },
-        { id: "c5", type: "systematicka", text: "Chyba paralaxy: Odečítáš objem v odměrném válci, ale díváš se na stupnici zešikma." },
-        { id: "c6", type: "hruba", text: "Záměna veličin: Místo průměru drátu jsi do vzorce omylem dosadil(a) jeho poloměr." },
-        { id: "c7", type: "systematicka", text: "Opotřebení: Kraj pravítka je ošoupaný a ty začínáš měřit od kraje místo od nuly." },
-        { id: "c8", type: "hruba", text: "Záškodnictví: Při měření teploty jsi omylem chytil(a) teploměr za baňku s lihem a zahřál(a) ho rukou." }
+        // Náhodné chyby
+        { id: "n1", type: "nahodna", text: "Při měření času stopkami pokaždé stiskneš tlačítko o malou chvilku dřív nebo později kvůli své reakční době." },
+        { id: "n2", type: "nahodna", text: "Průvan v učebně nepatrně vychýlí dráhu padajícího papírového kuželu." },
+        { id: "n3", type: "nahodna", text: "Při vážení na citlivé digitální váze hodnota neustále přeskakuje mezi 5,13 g a 5,14 g." },
+        { id: "n4", type: "nahodna", text: "Při odčítání ze stupnice se ti trochu klepe ruka." },
+
+        // Systematické chyby
+        { id: "s1", type: "systematicka", text: "Ručička ampérmetru není na nule ještě předtím, než ho zapojíš do obvodu." },
+        { id: "s2", type: "systematicka", text: "Odečítáš objem kapaliny v odměrném válci, ale díváš se na stupnici zešikma." },
+        { id: "s3", type: "systematicka", text: "Kovové pásmo je vlivem tepla trochu roztažené, takže naměříš o kousek méně, než je skutečnost." },
+        { id: "s4", type: "systematicka", text: "Kraj pravítka je ošoupaný a ty začínáš měřit od úplného kraje místo od nuly." },
+
+        // Hrubé chyby
+        { id: "h1", type: "hruba", text: "Na displeji bylo 12,5 s, ale do sešitu sis omylem zapsal(a) 21,5 s." },
+        { id: "h2", type: "hruba", text: "Místo průměru drátu jsi do vzorce pro průřez omylem dosadil(a) jeho poloměr." },
+        { id: "h3", type: "hruba", text: "Při počítání závažíček na miskové váze jsi jedno padesátigramové úplně přehlédl(a)." },
+        { id: "h4", type: "hruba", text: "Při měření teploty jsi omylem chytil(a) teploměr za baňku s lihem a zahřál(a) ho rukou." }
     ];
 
     // Zamíchání pole, aby to nebylo pokaždé ve stejném pořadí
@@ -190,7 +233,7 @@
     cardsData.forEach(card => {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card';
-        cardDiv.dataset.correctType = card.type; // Uložíme si správnou odpověď do datového atributu
+        cardDiv.dataset.correctType = card.type; // Uložíme si správnou odpověď
 
         // HTML struktura jedné kartičky
         cardDiv.innerHTML = `
@@ -206,15 +249,12 @@
 
     // Funkce pro výběr možnosti
     function selectOption(clickedBtn) {
-        // Najdeme všechna tlačítka v rámci aktuální kartičky
         const siblings = clickedBtn.parentElement.querySelectorAll('.option-btn');
         
-        // Všem odebereme třídu selected (odškrtneme je) a stavové třídy
         siblings.forEach(btn => {
             btn.classList.remove('selected', 'correct', 'incorrect');
         });
 
-        // Kliknutému tlačítku přidáme třídu selected
         clickedBtn.classList.add('selected');
     }
 
@@ -228,7 +268,6 @@
             const correctType = card.dataset.correctType;
             const selectedBtn = card.querySelector('.option-btn.selected');
             
-            // Očistíme případné předchozí barvy u všech tlačítek v kartě
             const allBtns = card.querySelectorAll('.option-btn');
             allBtns.forEach(btn => btn.classList.remove('correct', 'incorrect'));
 
@@ -241,7 +280,6 @@
                     score++;
                 } else {
                     selectedBtn.classList.add('incorrect');
-                    // Ukážeme studentovi, která byla ta správná
                     const correctBtn = card.querySelector(`.option-btn[data-value="${correctType}"]`);
                     correctBtn.classList.add('correct');
                 }
