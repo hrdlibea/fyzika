@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Harmonické kmitání - Aplet</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #2c3e50;
+        }
+        #app-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 500px;
+        }
+        .panel h2 {
+            font-size: 1.2rem;
+            margin-top: 0;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: #ffffff;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .control-group label {
+            width: 150px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            flex: 1;
+        }
+        .val-display {
+            width: 50px;
+            text-align: right;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Aplet: Harmonické kmitání a fázový posun</h1>
+
+    <div id="app-container">
+        <!-- Sekce 1: Motivace (původní obrázek) -->
+        <div class="panel">
+            <h2>Sekce 1: Motivace (Různé počáteční fáze)</h2>
+            <canvas id="canvas1" width="550" height="600"></canvas>
+        </div>
+
+        <!-- Sekce 2: Sčítání a odčítání -->
+        <div class="panel">
+            <h2>Sekce 2: Sčítání a odčítání fázového posunu</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Základní fáze (φ₀₁):</label>
+                    <input type="range" id="phi1Slider" min="-180" max="180" value="0" step="15">
+                    <span id="phi1Val" class="val-display">0°</span>
+                </div>
+                <div class="control-group">
+                    <label>Přidaný posun (Δφ):</label>
+                    <input type="range" id="deltaPhiSlider" min="-180" max="180" value="45" step="15">
+                    <span id="deltaPhiVal" class="val-display">45°</span>
+                </div>
+            </div>
+            <canvas id="canvas2" width="550" height="450"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Nastavení plátna a kontextu
+        const ctx1 = document.getElementById('canvas1').getContext('2d');
+        const ctx2 = document.getElementById('canvas2').getContext('2d');
+        
+        // Globální časová proměnná pro animaci
+        let time = 0;
+        const omega = 1.5; // Úhlová frekvence
+        const amplitude = 35; // Amplituda v pixelech
+
+        // Získání UI elementů pro sekci 2
+        const phi1Slider = document.getElementById('phi1Slider');
+        const deltaPhiSlider = document.getElementById('deltaPhiSlider');
+        const phi1Val = document.getElementById('phi1Val');
+        const deltaPhiVal = document.getElementById('deltaPhiVal');
+
+        // Funkce pro kreslení pružiny a závaží
+        function drawSpringMass(ctx, x, y, currentY) {
+            ctx.beginPath();
+            ctx.moveTo(x, y - 50); // Závěs
+            
+            // Pružina (cik-cak čára)
+            let coils = 10;
+            let coilHeight = (50 + currentY) / coils;
+            for (let i = 0; i <= coils; i++) {
+                let px = x + (i % 2 === 0 ? 8 : -8);
+                if (i === 0 || i === coils) px = x;
+                ctx.lineTo(px, y - 50 + i * coilHeight);
+            }
+            ctx.strokeStyle = '#7f8c8d';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Závaží
+            ctx.fillStyle = '#d35400';
+            ctx.fillRect(x - 10, y + currentY, 20, 20);
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(x - 10, y + currentY, 20, 20);
+        }
+
+        // Funkce pro kreslení fázorového diagramu (kružnice)
+        function drawPhasor(ctx, x, y, radius, phase, color, label) {
+            // Osy
+            ctx.beginPath();
+            ctx.moveTo(x - radius - 10, y);
+            ctx.lineTo(x + radius + 10, y);
+            ctx.moveTo(x, y - radius - 10);
+            ctx.lineTo(x, y + radius + 10);
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Kružnice
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Vektor
+            let vx = x + radius * Math.cos(phase);
+            let vy = y - radius * Math.sin(phase); // Y osa je v canvasu obráceně
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(vx, vy);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Hrot šipky
+            ctx.beginPath();
+            ctx.arc(vx, vy, 3, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+
+            // Fázový úhel vizualizace (výseč)
+            if (label && phase !== 0) {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                // Normalizace úhlu pro vykreslení výseče
+                let startAngle = 0;
+                let endAngle = -phase; // Canvas Y invert
+                if (phase < 0) {
+                    ctx.arc(x, y, 15, 0, -phase, false);
+                } else {
+                    ctx.arc(x, y, 15, -phase, 0, false);
+                }
+                ctx.fillStyle = color + '40'; // Transparentní barva
+                ctx.fill();
+            }
+        }
+
+        // Funkce pro kreslení sinusoidy
+        function drawWave(ctx, startX, startY, width, phase, color) {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(startX + width, startY);
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.beginPath();
+            for (let x = 0; x < width; x++) {
+                // Převod X na čas t pro statický graf představující "historii"
+                // Kreslíme vlnu od t=0 do šířky
+                let waveY = startY - amplitude * Math.sin(omega * (time - x/40) + phase);
+                if (x === 0) ctx.moveTo(startX + x, waveY);
+                else ctx.lineTo(startX + x, waveY);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Aktuální poloha na grafu (pohyblivý bod)
+            let currentY = startY - amplitude * Math.sin(omega * time + phase);
+            ctx.beginPath();
+            ctx.arc(startX, currentY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        // Sekce 1: Vykreslení 4 scénářů
+        function renderSection1() {
+            ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+            
+            const scenarios = [
+                { phi: 0, label: "φ₀ = 0" },
+                { phi: Math.PI / 4, label: "φ₀ > 0 (π/4)" },
+                { phi: Math.PI / 2, label: "φ₀ > 0 (π/2)" },
+                { phi: -Math.PI / 4, label: "φ₀ < 0 (-π/4)" }
+            ];
+
+            const rowHeight = 150;
+
+            scenarios.forEach((s, index) => {
+                let yBase = 75 + index * rowHeight;
+                
+                // Aktuální hodnota y(t)
+                let y_t = amplitude * Math.sin(omega * time + s.phi);
+                let phase_t = omega * time + s.phi;
+
+                // Kreslení textu
+                ctx1.fillStyle = '#000';
+                ctx1.font = '14px sans-serif';
+                ctx1.fillText(`t = 0`, 10, yBase - 30);
+                ctx1.fillText(s.label, 140, yBase + 60);
+
+                // 1. Pružina
+                drawSpringMass(ctx1, 60, yBase, -y_t);
+
+                // 2. Jednotková kružnice (Fázor)
+                drawPhasor(ctx1, 160, yBase, 40, phase_t, '#2980b9', true);
+
+                // 3. Graf (Osciloskop)
+                drawWave(ctx1, 230, yBase, 300, s.phi, '#2c3e50');
+                
+                // Osy grafu
+                ctx1.fillStyle = '#000';
+                ctx1.fillText("y", 220, yBase - 50);
+                ctx1.fillText("t", 535, yBase + 15);
+            });
+        }
+
+        // Sekce 2: Vykreslení interaktivního součtu/rozdílu fázorů
+        function renderSection2() {
+            ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+
+            // Získání hodnot z posuvníků a převod na radiány
+            let deg1 = parseInt(phi1Slider.value);
+            let degDelta = parseInt(deltaPhiSlider.value);
+            let rad1 = deg1 * Math.PI / 180;
+            let radDelta = degDelta * Math.PI / 180;
+            let rad2 = rad1 + radDelta;
+
+            // Aktualizace textových štítků
+            phi1Val.innerText = deg1 + "°";
+            deltaPhiVal.innerText = degDelta + "°";
+
+            let phase1_t = omega * time + rad1;
+            let phase2_t = omega * time + rad2;
+
+            // 1. Kreslení fázorového diagramu (velkého) uprostřed nahoře
+            let cx = canvas2.width / 2;
+            let cy = 120;
+            let radius = 80;
+
+            // Pozadí fázoru
+            ctx2.beginPath();
+            ctx2.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx2.strokeStyle = '#ecf0f1';
+            ctx2.fillStyle = '#fafafa';
+            ctx2.fill();
+            ctx2.stroke();
+
+            // Základní fáze (modře)
+            drawPhasor(ctx2, cx, cy, radius, phase1_t, '#2980b9', false);
+            // Posunutá fáze (červeně)
+            drawPhasor(ctx2, cx, cy, radius, phase2_t, '#e74c3c', false);
+
+            // Popisky u fázorů
+            ctx2.fillStyle = '#2980b9';
+            ctx2.font = '16px sans-serif';
+            ctx2.fillText("y₁ (Ref)", cx - 140, cy - 20);
+            ctx2.fillStyle = '#e74c3c';
+            ctx2.fillText("y₂ (Shift)", cx - 140, cy + 20);
+
+            // 2. Kreslení grafů obou vln pod sebou (překryté)
+            let graphY = 320;
+            let graphX = 50;
+            let graphWidth = 450;
+
+            // Vykreslení osy grafu
+            ctx2.beginPath();
+            ctx2.moveTo(graphX, graphY);
+            ctx2.lineTo(graphX + graphWidth, graphY);
+            ctx2.strokeStyle = '#bdc3c7';
+            ctx2.lineWidth = 1;
+            ctx2.stroke();
+            
+            ctx2.fillStyle = '#000';
+            ctx2.fillText("y", graphX - 15, graphY - 100);
+            ctx2.fillText("t", graphX + graphWidth + 10, graphY + 5);
+            ctx2.beginPath();
+            ctx2.moveTo(graphX, graphY - 120);
+            ctx2.lineTo(graphX, graphY + 120);
+            ctx2.stroke();
+
+            // Vykreslení první vlny y1 (Modrá)
+            ctx2.beginPath();
+            for (let x = 0; x < graphWidth; x++) {
+                let wy = graphY - (amplitude * 2) * Math.sin(omega * (time - x/40) + rad1);
+                if (x === 0) ctx2.moveTo(graphX + x, wy);
+                else ctx2.lineTo(graphX + x, wy);
+            }
+            ctx2.strokeStyle = '#2980b9';
+            ctx2.lineWidth = 2;
+            ctx2.stroke();
+
+            // Vykreslení druhé vlny y2 (Červená)
+            ctx2.beginPath();
+            for (let x = 0; x < graphWidth; x++) {
+                let wy = graphY - (amplitude * 2) * Math.sin(omega * (time - x/40) + rad2);
+                if (x === 0) ctx2.moveTo(graphX + x, wy);
+                else ctx2.lineTo(graphX + x, wy);
+            }
+            ctx2.strokeStyle = '#e74c3c';
+            ctx2.lineWidth = 2;
+            ctx2.stroke();
+            
+            // Rovnice dole
+            ctx2.fillStyle = '#333';
+            ctx2.font = '14px monospace';
+            let sign = degDelta >= 0 ? "+" : "-";
+            ctx2.fillText(`y₁ = y_m * sin(ωt ${deg1 >= 0 ? '+' : ''}${deg1}°)`, graphX, 420);
+            ctx2.fillText(`y₂ = y_m * sin(ωt ${deg1 >= 0 ? '+' : ''}${deg1}° ${sign} ${Math.abs(degDelta)}°)`, graphX, 440);
+        }
+
+        // Hlavní smyčka pro animaci
+        function animate() {
+            time += 0.02; // Rychlost animace
+            renderSection1();
+            renderSection2();
+            requestAnimationFrame(animate);
+        }
+
+        // Spuštění animace
+        animate();
+    </script>
+</body>
+</html>
