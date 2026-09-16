@@ -138,7 +138,16 @@
             background: #fff;
             padding: 5px;
             border-radius: 4px;
+            margin-bottom: 5px;
         }
+        
+        #turn-counter {
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px;
+            color: #8a5a2b;
+        }
+
         #math-display {
             background: #eef4ea;
             border: 1px solid #3d6b3f;
@@ -169,8 +178,8 @@
         <strong>⚙️ Instrukce pro navigátory:</strong>
         <ul>
             <li><strong>Cíl:</strong> Dopluj nejprve na oranžový <b>Maják</b> a poté do zeleného <b>Doku</b>.</li>
-            <li><strong>Proud:</strong> Voda tě neustále unáší na východ. K tahu tvého motoru se vždy automaticky přičte vektor proudu.</li>
-            <li><strong>Ovládání:</strong> Naklikej, jakým směrem a jakou silou má působit lodní motor (např. 2x na sever, 1x na západ) a potvrď manévr.</li>
+            <li><strong>Proud:</strong> Voda tě neustále unáší na východ. K tahu tvého motoru se vždy automaticky přičte vektor proudu. Můžeš se plavit i se zcela vypnutým motorem.</li>
+            <li><strong>Ovládání:</strong> Naklikej směr motoru a potvrď manévr. Pokus se trasu zvládnout na co nejméně tahů!</li>
         </ul>
     </div>
 
@@ -199,6 +208,7 @@
                 <button class="clear-motor-btn" onclick="vynulovatMotor()">↺ Zrušit výběr (vynulovat motor)</button>
                 
                 <div id="motor-status">Motor: [0, 0]</div>
+                <div id="turn-counter">Počet manévrů: 0</div>
             </div>
             
             <button class="action-btn" onclick="provedManevr()">🚀 Provést manévr</button>
@@ -217,9 +227,10 @@
         const gridWidth = 10;
         const gridHeight = 11;
         
-        let ship = { x: 2, y: 0 }; // Startovní pozice
+        let ship = { x: 2, y: 0 }; 
         let motor = { x: 0, y: 0 };
-        const proud = { x: 2, y: 0 }; // Konstantní proud
+        const proud = { x: 2, y: 0 }; 
+        let pocetTah = 0; // Proměnná pro počítání pokusů
 
         // Cíle
         const majak = { x: 5, y: 4, splneno: false };
@@ -253,7 +264,6 @@
         function drawMap() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Kreslení sítě
             ctx.strokeStyle = "#d8d2c4";
             ctx.lineWidth = 1;
             for (let i = 0; i <= canvas.width; i += gridSize) {
@@ -263,11 +273,9 @@
                 ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
             }
 
-            // Jižní břeh
             ctx.fillStyle = "rgba(47, 93, 98, 0.2)";
             ctx.fillRect(0, canvas.height - gridSize, canvas.width, gridSize);
 
-            // Maják
             if (!majak.splneno) {
                 ctx.fillStyle = "rgba(200, 150, 40, 0.5)";
                 ctx.fillRect(majak.x * gridSize, canvas.height - (majak.y + 1) * gridSize, gridSize, gridSize);
@@ -276,7 +284,6 @@
                 ctx.fillText("Maják", majak.x * gridSize + 2, canvas.height - majak.y * gridSize - 15);
             }
 
-            // Dok
             ctx.fillStyle = "rgba(47, 93, 98, 0.5)";
             ctx.fillRect(dok.x * gridSize, canvas.height - (dok.y + 1) * gridSize, gridSize, gridSize);
             ctx.fillStyle = "#2f5d62";
@@ -297,7 +304,6 @@
             document.getElementById("motor-status").innerText = `Motor: [${motor.x}, ${motor.y}]`;
         }
 
-        // Zrušení jen aktuálně naklikaného motoru
         function vynulovatMotor() {
             motor = { x: 0, y: 0 };
             document.getElementById("motor-status").innerText = `Motor: [0, 0]`;
@@ -310,10 +316,12 @@
         }
 
         function provedManevr() {
-            if (motor.x === 0 && motor.y === 0) {
-                alert("Motor je vypnutý! Nastav nejprve tah motoru pomocí tlačítek.");
-                return;
-            }
+            // Odebrána pojistka proti prázdnému motoru - nyní se lze plavit jen s proudem
+            const motorVypnuty = (motor.x === 0 && motor.y === 0);
+
+            // Zvýšení a výpis počítadla tahů
+            pocetTah++;
+            document.getElementById("turn-counter").innerHTML = `Počet manévrů: <b>${pocetTah}</b>`;
 
             const startX = ship.x;
             const startY = ship.y;
@@ -323,26 +331,35 @@
 
             drawMap();
 
-            // Vektory (Zelená motor, Modrá proud, Červená výslednice)
             const motorPxX = getPx(startX + motor.x);
             const motorPxY = getPy(startY + motor.y);
-            drawArrow(getPx(startX), getPy(startY), motorPxX, motorPxY, "#3d6b3f", 3);
+            
+            // Kreslení zelené šipky motoru, jen když motory nejsou [0, 0]
+            if (!motorVypnuty) {
+                drawArrow(getPx(startX), getPy(startY), motorPxX, motorPxY, "#3d6b3f", 3);
+            }
 
             const proudPxX = getPx(endX);
             const proudPxY = getPy(endY);
+            
+            // Kreslení modré šipky proudu (navazuje na motor)
             drawArrow(motorPxX, motorPxY, proudPxX, proudPxY, "#1a496b", 3);
 
+            // Kreslení červené výslednice (od lodi do konce)
             drawArrow(getPx(startX), getPy(startY), proudPxX, proudPxY, "#c1440e", 4);
 
             ship.x = endX;
             ship.y = endY;
 
-            // Zobrazení matematiky
+            // Zobrazení matematiky a logu
             const mathBox = document.getElementById("math-display");
             const celkemX = motor.x + proud.x;
             const celkemY = motor.y; 
             
-            if (motor.y === 0) {
+            if (motorVypnuty) {
+                mathBox.innerHTML = `Motor je vypnutý.<br>Loď je unášena pouze proudem.<br>v = ${proud.x} (v ose X)`;
+                logMsg(`Tah ${pocetTah}: Motory vypnuty. K driftu využit proud.`);
+            } else if (motor.y === 0) {
                 mathBox.innerHTML = `Vektory v jedné přímce:<br>v = ${motor.x} + ${proud.x} = <b>${Math.abs(celkemX)}</b> (bez odmocniny!)`;
             } else {
                 const prepona = Math.sqrt(Math.pow(celkemX, 2) + Math.pow(celkemY, 2)).toFixed(2);
@@ -352,20 +369,19 @@
             setTimeout(() => {
                 drawShip();
                 
-                // Vyhodnocení pozice lodi
                 if (ship.x === majak.x && ship.y === majak.y && !majak.splneno) {
                     majak.splneno = true;
-                    logMsg("⭐ Maják dosažen! Nyní pluj do Doku.");
+                    logMsg(`⭐ Maják dosažen v ${pocetTah}. tahu! Nyní do Doku.`);
                 } else if (ship.x === dok.x && ship.y === dok.y) {
                     if (majak.splneno) {
-                        logMsg("🏆 Úspěch! Zakotvil jsi v Doku.");
-                        alert("Mise splněna! Dokončil jsi trasu.");
+                        logMsg(`🏆 Úspěch! Zakotvil jsi v Doku (Celkem tahů: ${pocetTah}).`);
+                        alert(`Mise splněna! Dokončil jsi trasu na ${pocetTah} tahů.`);
                     } else {
                         logMsg("❌ Jsi v doku, ale minul jsi Maják! Použij Nouzový reset.");
                     }
                 } else if (ship.x < 0 || ship.x > gridWidth - 1 || ship.y < 0 || ship.y > gridHeight - 1) {
                     logMsg("☠️ Loď ztroskotala mimo mapu. Použij Nouzový reset.");
-                } else {
+                } else if (!motorVypnuty) {
                     logMsg(`Přesun dokončen. Loď je na [${ship.x}, ${ship.y}]`);
                 }
                 
@@ -377,6 +393,8 @@
             ship = { x: 2, y: 0 };
             vynulovatMotor();
             majak.splneno = false;
+            pocetTah = 0;
+            document.getElementById("turn-counter").innerHTML = `Počet manévrů: <b>0</b>`;
             document.getElementById("math-display").innerHTML = "Zadejte tah motoru a klikněte na Provést manévr.";
             document.getElementById("log").innerHTML = "Hra restartována.<br>Úkol 1: Dostaň se na Maják.";
             drawMap();
