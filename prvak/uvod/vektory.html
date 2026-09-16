@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operace Divoká řeka</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f4ee;
+            color: #1c2321;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 { color: #2f5d62; }
+        .container {
+            display: flex;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background-color: #eaf2f1;
+            border: 2px solid #2f5d62;
+            border-radius: 8px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 300px;
+        }
+        .control-group {
+            background: #faf1e6;
+            padding: 15px;
+            border-left: 4px solid #8a5a2b;
+            border-radius: 0 8px 8px 0;
+        }
+        input {
+            width: 60px;
+            padding: 5px;
+            margin-left: 10px;
+        }
+        button {
+            background-color: #2f5d62;
+            color: white;
+            border: none;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #24484c; }
+        #log {
+            font-family: monospace;
+            background: #f0efe9;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            border: 1px solid #d8d2c4;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Operace Divoká řeka</h1>
+    <div class="container">
+        <!-- Vykreslovací plátno -->
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        
+        <!-- Ovládání -->
+        <div class="controls">
+            <div class="control-group">
+                <h3>Nastavení motoru</h3>
+                <label>Osa X (Východ/Západ): <input type="number" id="motorX" value="0"></label><br><br>
+                <label>Osa Y (Sever/Jih): <input type="number" id="motorY" value="4"></label>
+            </div>
+            
+            <button onclick="provedManevr()">Provést manévr</button>
+            <button onclick="resetHry()" style="background-color: #c1440e;">Záchranný reset</button>
+            
+            <h3>Palubní deník:</h3>
+            <div id="log">Loď připravena na jižním břehu.<br>Proud řeky je konstantní: +2 m/s na východ.</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        
+        // Nastavení gridu
+        const gridSize = 40;
+        const centerX = canvas.width / 2;
+        const startY = canvas.height - gridSize; 
+        
+        // Stavy lodi
+        let shipPos = { x: 0, y: 0 }; // Relativní souřadnice (počet čtverečků)
+        const riverVector = { x: 2, y: 0 };
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#d8d2c4";
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= canvas.width; i += gridSize) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // Vykreslení břehů
+            ctx.fillStyle = "rgba(47, 93, 98, 0.2)";
+            ctx.fillRect(0, 0, canvas.width, gridSize); // Severní břeh
+            ctx.fillRect(0, canvas.height - gridSize, canvas.width, gridSize); // Jižní břeh
+            
+            // Cílový sektor [0]
+            ctx.fillStyle = "rgba(138, 90, 43, 0.4)";
+            ctx.fillRect(centerX - gridSize/2, 0, gridSize, gridSize);
+        }
+
+        function drawShip() {
+            const px = centerX + (shipPos.x * gridSize);
+            const py = startY - (shipPos.y * gridSize);
+            
+            ctx.fillStyle = "#c1440e";
+            ctx.beginPath();
+            ctx.arc(px, py, 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function logMessage(msg) {
+            const logDiv = document.getElementById("log");
+            logDiv.innerHTML += "<br>> " + msg;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function provedManevr() {
+            if (shipPos.y >= 8) {
+                logMessage("Mise již skončila. Plavidlo je na břehu.");
+                return;
+            }
+
+            const mx = parseFloat(document.getElementById("motorX").value);
+            const my = parseFloat(document.getElementById("motorY").value);
+            
+            // Sčítání vektorů
+            const vysledniceX = mx + riverVector.x;
+            const vysledniceY = my + riverVector.y;
+            
+            // Aplikace logiky z metodického listu (přepočet posunu v síti)
+            // Zde se posouvá loď v grafu (pro zjednodušení simulace o 1 čtvereček výšky = 1 jednotka Y)
+            let oldX = shipPos.x;
+            let oldY = shipPos.y;
+            
+            shipPos.x += vysledniceX;
+            shipPos.y += vysledniceY;
+            
+            // Výpočet velikosti Pythagorovou větou
+            let velikost;
+            if (my === 0) {
+                velikost = Math.abs(vysledniceX); // Protilehlé vektory
+                logMessage("Protilehlé vektory! Výsledná rychlost: " + velikost + " m/s");
+            } else {
+                velikost = Math.sqrt(Math.pow(vysledniceX, 2) + Math.pow(vysledniceY, 2)).toFixed(1);
+                logMessage("Kolmé vektory. Výsledná rychlost: " + velikost + " m/s");
+            }
+
+            drawGrid();
+            drawShip();
+        }
+
+        function resetHry() {
+            shipPos = { x: 0, y: 0 };
+            document.getElementById("log").innerHTML = "Hra restartována.";
+            drawGrid();
+            drawShip();
+        }
+
+        // Inicializace
+        drawGrid();
+        drawShip();
+    </script>
+</body>
+</html>
