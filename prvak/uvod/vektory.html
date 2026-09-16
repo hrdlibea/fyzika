@@ -3,110 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operace Divoká řeka</title>
+    <title>Operace Divoká řeka: Navigace</title>
     <style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f7f4ee;
-        color: #1c2321;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 10px; /* Zmenšený padding pro mobily */
-        margin: 0;
-    }
-    h1 { 
-        color: #2f5d62; 
-        text-align: center;
-        font-size: 24px;
-    }
-    .container {
-        display: flex;
-        flex-wrap: wrap; /* Zásadní pro mobily: dovolí zalamování pod sebe */
-        justify-content: center;
-        gap: 20px;
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        width: 100%;
-        max-width: 800px;
-        box-sizing: border-box;
-    }
-    canvas {
-        background-color: #eaf2f1;
-        border: 2px solid #2f5d62;
-        border-radius: 8px;
-        max-width: 100%; /* Zajistí, že canvas nepřeteče šířku displeje */
-        height: auto;
-    }
-    .controls {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        width: 100%;
-        max-width: 350px; /* Na mobilu se roztáhne, na PC zůstane kompaktní */
-    }
-    .control-group {
-        background: #faf1e6;
-        padding: 15px;
-        border-left: 4px solid #8a5a2b;
-        border-radius: 0 8px 8px 0;
-    }
-    .control-group label {
-        display: inline-block;
-        margin-bottom: 8px;
-    }
-    input {
-        width: 60px;
-        padding: 8px; /* Větší tlačítka pro prsty */
-        margin-left: 10px;
-        border: 1px solid #d8d2c4;
-        border-radius: 4px;
-    }
-    button {
-        background-color: #2f5d62;
-        color: white;
-        border: none;
-        padding: 12px; /* Zvětšeno pro snadnější dotyk (touch target) */
-        font-size: 16px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: bold;
-    }
-    button:hover { background-color: #24484c; }
-    #log {
-        font-family: monospace;
-        font-size: 14px;
-        background: #f0efe9;
-        padding: 10px;
-        height: 120px;
-        overflow-y: auto;
-        border: 1px solid #d8d2c4;
-        border-radius: 6px;
-    }
-</style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f4ee;
+            color: #1c2321;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+        }
+        h1 { color: #2f5d62; text-align: center; font-size: 22px; margin-bottom: 10px;}
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 850px;
+            box-sizing: border-box;
+        }
+        canvas {
+            background-color: #eaf2f1;
+            border: 2px solid #2f5d62;
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 320px;
+        }
+        .control-group {
+            background: #faf1e6;
+            padding: 15px;
+            border-left: 4px solid #8a5a2b;
+            border-radius: 0 8px 8px 0;
+        }
+        .dpad {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .dpad button {
+            background-color: #e0d8c3;
+            color: #1c2321;
+            padding: 10px;
+            font-size: 14px;
+        }
+        .dpad button:hover { background-color: #d1c7b1; }
+        .btn-up { grid-column: 2; }
+        .btn-left { grid-column: 1; grid-row: 2; }
+        .btn-down { grid-column: 2; grid-row: 2; }
+        .btn-right { grid-column: 3; grid-row: 2; }
+        
+        .action-btn {
+            background-color: #2f5d62;
+            color: white;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+        }
+        .action-btn:hover { background-color: #24484c; }
+        .reset-btn { background-color: #c1440e; }
+        .reset-btn:hover { background-color: #9e360b; }
+        
+        #motor-status {
+            font-family: monospace;
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+            color: #2f5d62;
+        }
+        #math-display {
+            background: #eef4ea;
+            border: 1px solid #3d6b3f;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+            color: #3d6b3f;
+            min-height: 40px;
+        }
+        #log {
+            font-family: monospace;
+            font-size: 13px;
+            background: #f0efe9;
+            padding: 10px;
+            height: 100px;
+            overflow-y: auto;
+            border: 1px solid #d8d2c4;
+            border-radius: 6px;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Operace Divoká řeka</h1>
+    <h1>Operace Divoká řeka: Navigace</h1>
     <div class="container">
+        
         <!-- Vykreslovací plátno -->
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
+        <canvas id="gameCanvas" width="400" height="440"></canvas>
         
         <!-- Ovládání -->
         <div class="controls">
             <div class="control-group">
-                <h3>Nastavení motoru</h3>
-                <label>Osa X (Východ/Západ): <input type="number" id="motorX" value="0"></label><br><br>
-                <label>Osa Y (Sever/Jih): <input type="number" id="motorY" value="4"></label>
+                <div style="font-size: 12px; color: #8a5a2b; font-weight: bold; margin-bottom: 5px;">NASTAVENÍ MOTORU</div>
+                <div class="dpad">
+                    <button class="btn-up" onclick="zmenMotor(0, 1)">Sever<br>+1</button>
+                    <button class="btn-left" onclick="zmenMotor(-1, 0)">Západ<br>-1</button>
+                    <button class="btn-down" onclick="zmenMotor(0, -1)">Jih<br>-1</button>
+                    <button class="btn-right" onclick="zmenMotor(1, 0)">Východ<br>+1</button>
+                </div>
+                <div id="motor-status">Motor: [0, 0]</div>
             </div>
             
-            <button onclick="provedManevr()">Provést manévr</button>
-            <button onclick="resetHry()" style="background-color: #c1440e;">Záchranný reset</button>
+            <button class="action-btn" onclick="provedManevr()">🚀 Provést manévr</button>
+            <div id="math-display">Zadejte tah motoru a klikněte na Provést manévr.</div>
             
-            <h3>Palubní deník:</h3>
-            <div id="log">Loď připravena na jižním břehu.<br>Proud řeky je konstantní: +2 m/s na východ.</div>
+            <div id="log">Loď připravena.<br>Proud: +2 na východ.<br>Úkol 1: Dostaň se na Maják.</div>
+            <button class="action-btn reset-btn" onclick="resetHry()">Nouzový reset</button>
         </div>
     </div>
 
@@ -114,95 +146,182 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         
-        // Nastavení gridu
         const gridSize = 40;
-        const centerX = canvas.width / 2;
-        const startY = canvas.height - gridSize; 
+        const gridWidth = 10;
+        const gridHeight = 11;
         
-        // Stavy lodi
-        let shipPos = { x: 0, y: 0 }; // Relativní souřadnice (počet čtverečků)
-        const riverVector = { x: 2, y: 0 };
+        let ship = { x: 2, y: 0 }; // Startovní pozice
+        let motor = { x: 0, y: 0 };
+        const proud = { x: 2, y: 0 }; // Konstantní proud
 
-        function drawGrid() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = "#d8d2c4";
-            ctx.lineWidth = 1;
-            
-            for (let i = 0; i <= canvas.width; i += gridSize) {
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
-            }
+        // Cíle
+        const majak = { x: 5, y: 4, splneno: false };
+        const dok = { x: 7, y: 9 };
 
-            // Vykreslení břehů
-            ctx.fillStyle = "rgba(47, 93, 98, 0.2)";
-            ctx.fillRect(0, 0, canvas.width, gridSize); // Severní břeh
-            ctx.fillRect(0, canvas.height - gridSize, canvas.width, gridSize); // Jižní břeh
+        // Pomocná funkce pro kreslení šipek
+        function drawArrow(fromx, fromy, tox, toy, color, lineWidth) {
+            const headlen = 10;
+            const dx = tox - fromx;
+            const dy = toy - fromy;
+            const angle = Math.atan2(dy, dx);
             
-            // Cílový sektor [0]
-            ctx.fillStyle = "rgba(138, 90, 43, 0.4)";
-            ctx.fillRect(centerX - gridSize/2, 0, gridSize, gridSize);
-        }
-
-        function drawShip() {
-            const px = centerX + (shipPos.x * gridSize);
-            const py = startY - (shipPos.y * gridSize);
-            
-            ctx.fillStyle = "#c1440e";
             ctx.beginPath();
-            ctx.arc(px, py, 8, 0, Math.PI * 2);
+            ctx.moveTo(fromx, fromy);
+            ctx.lineTo(tox, toy);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+            
+            // Kreslení hlavičky šipky
+            ctx.beginPath();
+            ctx.moveTo(tox, toy);
+            ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.fillStyle = color;
             ctx.fill();
         }
 
-        function logMessage(msg) {
+        // Převod souřadnic sítě na pixely plátna
+        function getPx(x) { return x * gridSize + gridSize / 2; }
+        function getPy(y) { return canvas.height - (y * gridSize + gridSize / 2); }
+
+        function drawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Kreslení sítě
+            ctx.strokeStyle = "#d8d2c4";
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= canvas.width; i += gridSize) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+            for (let i = 0; i <= canvas.height; i += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke();
+            }
+
+            // Vykreslení břehu
+            ctx.fillStyle = "rgba(47, 93, 98, 0.2)";
+            ctx.fillRect(0, canvas.height - gridSize, canvas.width, gridSize);
+
+            // Maják (Mezipřistání)
+            if (!majak.splneno) {
+                ctx.fillStyle = "rgba(200, 150, 40, 0.5)";
+                ctx.fillRect(majak.x * gridSize, canvas.height - (majak.y + 1) * gridSize, gridSize, gridSize);
+                ctx.fillStyle = "#8a5a2b";
+                ctx.font = "12px sans-serif";
+                ctx.fillText("Maják", majak.x * gridSize + 2, canvas.height - majak.y * gridSize - 15);
+            }
+
+            // Dok (Finální cíl)
+            ctx.fillStyle = "rgba(47, 93, 98, 0.5)";
+            ctx.fillRect(dok.x * gridSize, canvas.height - (dok.y + 1) * gridSize, gridSize, gridSize);
+            ctx.fillStyle = "#2f5d62";
+            ctx.fillText("Dok", dok.x * gridSize + 8, canvas.height - dok.y * gridSize - 15);
+        }
+
+        function drawShip() {
+            ctx.fillStyle = "#c1440e";
+            ctx.beginPath();
+            ctx.arc(getPx(ship.x), getPy(ship.y), 8, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function zmenMotor(dx, dy) {
+            motor.x += dx;
+            motor.y += dy;
+            document.getElementById("motor-status").innerText = `Motor: [${motor.x}, ${motor.y}]`;
+        }
+
+        function logMsg(msg) {
             const logDiv = document.getElementById("log");
             logDiv.innerHTML += "<br>> " + msg;
             logDiv.scrollTop = logDiv.scrollHeight;
         }
 
         function provedManevr() {
-            if (shipPos.y >= 8) {
-                logMessage("Mise již skončila. Plavidlo je na břehu.");
+            if (motor.x === 0 && motor.y === 0) {
+                alert("Motor je vypnutý! Nastav tah motoru.");
                 return;
             }
 
-            const mx = parseFloat(document.getElementById("motorX").value);
-            const my = parseFloat(document.getElementById("motorY").value);
+            // Kde loď začíná tento tah
+            const startX = ship.x;
+            const startY = ship.y;
+
+            // Kde loď skončí
+            const endX = ship.x + motor.x + proud.x;
+            const endY = ship.y + motor.y + proud.y;
+
+            drawMap();
+
+            // 1. Vektor motoru (Zelená) - vychází z lodi
+            const motorPxX = getPx(startX + motor.x);
+            const motorPxY = getPy(startY + motor.y);
+            drawArrow(getPx(startX), getPy(startY), motorPxX, motorPxY, "#3d6b3f", 3);
+
+            // 2. Vektor proudu (Modrá) - navazuje na konec motoru
+            const proudPxX = getPx(endX);
+            const proudPxY = getPy(endY);
+            drawArrow(motorPxX, motorPxY, proudPxX, proudPxY, "#2f5d62", 3);
+
+            // 3. Výslednice (Červená) - od startu do konce
+            drawArrow(getPx(startX), getPy(startY), proudPxX, proudPxY, "#c1440e", 4);
+
+            // Aktualizace pozice
+            ship.x = endX;
+            ship.y = endY;
+
+            // Výpočet Pythagorovy věty pro displej
+            const mathBox = document.getElementById("math-display");
+            const celkemX = motor.x + proud.x;
+            const celkemY = motor.y; // proud Y je 0
             
-            // Sčítání vektorů
-            const vysledniceX = mx + riverVector.x;
-            const vysledniceY = my + riverVector.y;
-            
-            // Aplikace logiky z metodického listu (přepočet posunu v síti)
-            // Zde se posouvá loď v grafu (pro zjednodušení simulace o 1 čtvereček výšky = 1 jednotka Y)
-            let oldX = shipPos.x;
-            let oldY = shipPos.y;
-            
-            shipPos.x += vysledniceX;
-            shipPos.y += vysledniceY;
-            
-            // Výpočet velikosti Pythagorovou větou
-            let velikost;
-            if (my === 0) {
-                velikost = Math.abs(vysledniceX); // Protilehlé vektory
-                logMessage("Protilehlé vektory! Výsledná rychlost: " + velikost + " m/s");
+            if (motor.y === 0) {
+                mathBox.innerHTML = `Vektory míří proti sobě / souhlasně:<br>v = ${motor.x} + ${proud.x} = <b>${Math.abs(celkemX)}</b> (bez odmocniny!)`;
             } else {
-                velikost = Math.sqrt(Math.pow(vysledniceX, 2) + Math.pow(vysledniceY, 2)).toFixed(1);
-                logMessage("Kolmé vektory. Výsledná rychlost: " + velikost + " m/s");
+                const prepona = Math.sqrt(Math.pow(celkemX, 2) + Math.pow(celkemY, 2)).toFixed(2);
+                mathBox.innerHTML = `Pythagorova věta (Výslednice = červená):<br>v = &radic;(${celkemX}&sup2; + ${celkemY}&sup2;) = <b>${prepona}</b>`;
             }
 
-            drawGrid();
-            drawShip();
+            // Vykreslení lodi na nové pozici po krátké pauze (aby si prohlédli šipky)
+            setTimeout(() => {
+                drawShip();
+                
+                // Kontrola cílů
+                if (ship.x === majak.x && ship.y === majak.y && !majak.splneno) {
+                    majak.splneno = true;
+                    logMsg("⭐ Maják dosažen! Výborně. Nyní pluj do Doku.");
+                } else if (ship.x === dok.x && ship.y === dok.y) {
+                    if (majak.splneno) {
+                        logMsg("🏆 Záchranná mise úspěšná! Jsi v Doku.");
+                        alert("Mise splněna! Gratuluji.");
+                    } else {
+                        logMsg("❌ Jsi v doku, ale minul jsi Maják! Resetuj hru.");
+                    }
+                } else if (ship.x < 0 || ship.x > gridWidth - 1 || ship.y < 0 || ship.y > gridHeight - 1) {
+                    logMsg("☠️ Loď narazila na útesy (mimo mapu).");
+                } else {
+                    logMsg(`Přesun na [${ship.x}, ${ship.y}]`);
+                }
+                
+                // Vynulování motoru pro další tah
+                motor = { x: 0, y: 0 };
+                document.getElementById("motor-status").innerText = `Motor: [0, 0]`;
+            }, 500); // půl sekundy zpoždění
         }
 
         function resetHry() {
-            shipPos = { x: 0, y: 0 };
-            document.getElementById("log").innerHTML = "Hra restartována.";
-            drawGrid();
+            ship = { x: 2, y: 0 };
+            motor = { x: 0, y: 0 };
+            majak.splneno = false;
+            document.getElementById("motor-status").innerText = `Motor: [0, 0]`;
+            document.getElementById("math-display").innerHTML = "Zadejte tah motoru a klikněte na Provést manévr.";
+            document.getElementById("log").innerHTML = "Hra restartována.<br>Úkol 1: Dostaň se na Maják.";
+            drawMap();
             drawShip();
         }
 
-        // Inicializace
-        drawGrid();
+        // Úvodní vykreslení
+        drawMap();
         drawShip();
     </script>
 </body>
