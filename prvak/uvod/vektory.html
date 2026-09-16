@@ -5,67 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Operace Divoká řeka</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f7f4ee;
-            color: #1c2321;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-        h1 { color: #2f5d62; }
-        .container {
-            display: flex;
-            gap: 20px;
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        canvas {
-            background-color: #eaf2f1;
-            border: 2px solid #2f5d62;
-            border-radius: 8px;
-        }
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 300px;
-        }
-        .control-group {
-            background: #faf1e6;
-            padding: 15px;
-            border-left: 4px solid #8a5a2b;
-            border-radius: 0 8px 8px 0;
-        }
-        input {
-            width: 60px;
-            padding: 5px;
-            margin-left: 10px;
-        }
-        button {
-            background-color: #2f5d62;
-            color: white;
-            border: none;
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        button:hover { background-color: #24484c; }
-        #log {
-            font-family: monospace;
-            background: #f0efe9;
-            padding: 10px;
-            height: 150px;
-            overflow-y: auto;
-            border: 1px solid #d8d2c4;
-            border-radius: 6px;
-        }
-    </style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f7f4ee;
+        color: #1c2321;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px; /* Zmenšený padding pro mobily */
+        margin: 0;
+    }
+    h1 { 
+        color: #2f5d62; 
+        text-align: center;
+        font-size: 24px;
+    }
+    .container {
+        display: flex;
+        flex-wrap: wrap; /* Zásadní pro mobily: dovolí zalamování pod sebe */
+        justify-content: center;
+        gap: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        width: 100%;
+        max-width: 800px;
+        box-sizing: border-box;
+    }
+    canvas {
+        background-color: #eaf2f1;
+        border: 2px solid #2f5d62;
+        border-radius: 8px;
+        max-width: 100%; /* Zajistí, že canvas nepřeteče šířku displeje */
+        height: auto;
+    }
+    .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        max-width: 350px; /* Na mobilu se roztáhne, na PC zůstane kompaktní */
+    }
+    .control-group {
+        background: #faf1e6;
+        padding: 15px;
+        border-left: 4px solid #8a5a2b;
+        border-radius: 0 8px 8px 0;
+    }
+    .control-group label {
+        display: inline-block;
+        margin-bottom: 8px;
+    }
+    input {
+        width: 60px;
+        padding: 8px; /* Větší tlačítka pro prsty */
+        margin-left: 10px;
+        border: 1px solid #d8d2c4;
+        border-radius: 4px;
+    }
+    button {
+        background-color: #2f5d62;
+        color: white;
+        border: none;
+        padding: 12px; /* Zvětšeno pro snadnější dotyk (touch target) */
+        font-size: 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    button:hover { background-color: #24484c; }
+    #log {
+        font-family: monospace;
+        font-size: 14px;
+        background: #f0efe9;
+        padding: 10px;
+        height: 120px;
+        overflow-y: auto;
+        border: 1px solid #d8d2c4;
+        border-radius: 6px;
+    }
+</style>
 </head>
 <body>
 
