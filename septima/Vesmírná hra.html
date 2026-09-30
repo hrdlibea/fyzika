@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Výsadek</title>
+<style>
+:root{--bg:#eef1f4;--fg:#1b2129;--card:#fff;--line:#c4ccd4;--acc:#2f6f5e;--accfg:#fff;--ok:#1b7a4b;--bad:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--fg:#e6eaee;--card:#1e242b;--line:#39424c;--acc:#5fb59c;--accfg:#10201b;--ok:#6fd49b;--bad:#ff8a80}}
+:root[data-theme="dark"]{--bg:#14181d;--fg:#e6eaee;--card:#1e242b;--line:#39424c;--acc:#5fb59c;--accfg:#10201b;--ok:#6fd49b;--bad:#ff8a80}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:14px}
+h1{font-size:1.4rem;margin:0 0 10px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tabs button{flex:1;padding:10px;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:8px;font:inherit}
+.tabs button[aria-selected="true"]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.story{margin:0 0 10px}
+.canvaswrap{border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+canvas{display:block;width:100%}
+.time{display:flex;justify-content:space-between;margin:8px 0;font-variant-numeric:tabular-nums}
+.step{margin-top:12px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.step.locked{opacity:.45}
+.step h2{font-size:1rem;margin:0 0 8px}
+.row{display:flex;gap:8px;align-items:center}
+.row label{white-space:nowrap}
+input{flex:1;min-width:0;font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)}
+.unit{white-space:nowrap}
+.go{width:100%;margin-top:8px;padding:12px;border:0;border-radius:8px;background:var(--acc);color:var(--accfg);font:inherit;font-weight:600}
+.go:disabled{opacity:.5}
+.msg{min-height:1.5em;margin-top:8px;font-weight:600}
+.msg.ok{color:var(--ok)}.msg.bad{color:var(--bad)}
+</style>
+</head>
+<body>
+<main>
+<h1>Výsadek</h1>
+<div class="tabs" role="tablist">
+  <button role="tab" id="t1" aria-selected="true">Úroveň 1: Lano</button>
+  <button role="tab" id="t2" aria-selected="false">Úroveň 2: Pružina</button>
+</div>
+<p class="story" id="story"></p>
+<div class="canvaswrap"><canvas id="cv"></canvas></div>
+<div class="time"><span id="time">t = 0,00 s</span><span id="door">dveře: zavřené</span></div>
+
+<section class="step" id="s1">
+  <h2 id="q1"></h2>
+  <div class="row">
+    <label for="v1">T =</label>
+    <input id="v1" type="text" inputmode="decimal" autocomplete="off" placeholder="perioda">
+    <span class="unit">s</span>
+  </div>
+  <button class="go" id="chk">Zkontrolovat periodu</button>
+  <div class="msg" id="m1" aria-live="polite"></div>
+</section>
+
+<section class="step locked" id="s2">
+  <h2 id="q2"></h2>
+  <div class="row">
+    <label for="val" id="lab">l =</label>
+    <input id="val" type="text" inputmode="decimal" autocomplete="off" placeholder="zadej hodnotu" disabled>
+    <span class="unit" id="unit">m</span>
+  </div>
+  <button class="go" id="go" disabled>Vyskočit</button>
+  <div class="msg" id="msg" aria-live="polite"></div>
+</section>
+</main>
+<script>
+const G=2.5, M=1000, TD=Math.PI, TOL=0.1;
+const HINT=new URLSearchParams(location.search).get('napoveda')==='1'; // učitelský režim: ?napoveda=1
+const $=id=>document.getElementById(id);
+const cv=$('cv'), ctx=cv.getContext('2d');
+const fmt=x=>x.toFixed(2).replace('.',',');
+let level=1, W=360, H=300, raf=0, t0=0, tEnd=0, p={v:2};
+
+const TXT={
+ 1:{story:'Planeta má g = 2,5 m·s⁻². Výsadkář (80 kg) se chce na laně zhoupnout z jednoho okraje propasti na druhý, největší výchylka lana je 25°. Dveře bunkru se otevřou přesně za 3,14 s od startu a hned se zavřou.',
+    q1:'Krok 1: Jakou periodu T musí mít kyvadlo, aby se zhoupnutí přes propast stihlo přesně do otevření dveří?',
+    q2:'Krok 2: Dopočítej délku lana.',lab:'l =',unit:'m',go:'Vyskočit',def:2,min:0.5,max:6,T1:2*Math.PI,
+    wrong1:'Nesedí. Jakou část periody tvoří zhoupnutí z jednoho okraje na druhý?',
+    wrongPi:'Za π s se dveře otevřou, ale zhoupnutí přes propast není celá perioda. Jaká je to část?'},
+ 2:{story:'Evakuační modul (m = 1000 kg) zapadl a pružina je stlačená o 0,5 m. Zážeh trysek přijde za 3,14 s od odpálení a modul musí být v tu chvíli přesně po jednom celém kmitu.',
+    q1:'Krok 1: Na jakou periodu T musíš pružinu naladit?',
+    q2:'Krok 2: Dopočítej tuhost pružiny.',lab:'k =',unit:'N/m',go:'Odpálit',def:2000,min:10,max:1000000,T1:Math.PI,
+    wrong1:'Nesedí. Modul musí udělat přesně jeden celý kmit do zážehu trysek.',wrongPi:''}
+};
+
+function resize(){
+  const w=cv.parentElement.clientWidth, d=window.devicePixelRatio||1;
+  W=w; cv.width=w*d; cv.height=H*d; cv.style.height=H+'px';
+  ctx.setTransform(d,0,0,d,0,0); draw(0);
+}
+
+function sky(){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#2a2345'); g.addColorStop(1,'#b5654a');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,230,200,.25)'; ctx.beginPath(); ctx.arc(W-60,60,34,0,7); ctx.fill();
+}
+
+function draw(t){
+  ctx.clearRect(0,0,W,H); sky();
+  if(level===1) d1(t); else d2(t);
+  const open=Math.abs(t-TD)<=TOL;
+  $('time').textContent='t = '+fmt(t)+' s';
+  $('door').textContent=level===1?(open?'dveře: OTEVŘENÉ':'dveře: zavřené'):(open?'zážeh!':'zážeh za '+fmt(Math.max(0,TD-t))+' s');
+}
+
+function d1(t){
+  const l=p.v, L=l*40, th0=25*Math.PI/180, w=Math.sqrt(G/l), tA=Math.PI/w, cx=W/2, py=34;
+  const th=-th0*Math.cos(w*Math.min(t,tA));
+  const bx=cx+L*Math.sin(th), by=py+L*Math.cos(th);
+  const xl=cx-L*Math.sin(th0), xr=cx+L*Math.sin(th0), yc=py+L*Math.cos(th0)+20;
+  const open=Math.abs(t-TD)<=TOL, ok=Math.abs(tA-TD)<=TOL, inside=ok&&t>=tA;
+  ctx.fillStyle='#6b4f3a'; ctx.fillRect(0,yc,xl+4,H-yc); ctx.fillRect(xr-4,yc,W-xr+4,H-yc);
+  ctx.fillStyle='#454a58'; ctx.fillRect(xr+6,yc-56,W-xr-6,56);
+  ctx.fillStyle=open?'#0b1511':'#8a909e'; ctx.fillRect(xr+6,yc-38,20,38);
+  ctx.strokeStyle=open?'#5fd38d':'#e0544a'; ctx.lineWidth=2; ctx.strokeRect(xr+6,yc-38,20,38);
+  ctx.fillStyle='#ccc'; ctx.fillRect(cx-30,py-8,60,6);
+  if(inside) return;
+  ctx.strokeStyle='#eee'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,py-5); ctx.lineTo(bx,by); ctx.stroke();
+  ctx.strokeStyle='#ffd36b'; ctx.fillStyle='#ffd36b';
+  ctx.beginPath(); ctx.arc(bx,by+7,5,0,7); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(bx,by+12); ctx.lineTo(bx,by+20); ctx.moveTo(bx-4,by+12); ctx.lineTo(bx+4,by+12); ctx.stroke();
+}
+
+function d2(t){
+  const w=Math.sqrt(p.v/M), T=2*Math.PI/w, cx=W/2, gy=H-20, yE=gy-150, A=45;
+  const ok=Math.abs(T-TD)<=TOL, fired=t>=TD;
+  let y=yE+A*Math.cos(w*t);
+  if(fired&&ok){ const s=t-TD; y=yE+A-(s*s*260); }
+  ctx.fillStyle='#6b4f3a'; ctx.fillRect(0,gy,W,H-gy);
+  const top=y+18;
+  ctx.strokeStyle='#ddd'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(cx,top);
+  if(!(fired&&ok)){
+    const n=10, h=(gy-top)/n;
+    for(let i=0;i<n;i++){ ctx.lineTo(cx+(i%2?-14:14),top+h*(i+.5)); }
+    ctx.lineTo(cx,gy); ctx.stroke();
+  }
+  ctx.fillStyle='#7d8aa0'; ctx.fillRect(cx-35,y-18,70,36);
+  ctx.fillStyle='#fff'; ctx.font='12px system-ui,sans-serif'; ctx.textAlign='center'; ctx.fillText('1000 kg',cx,y+4);
+  if(fired&&ok){ ctx.fillStyle='#ffb347'; ctx.beginPath(); ctx.moveTo(cx-12,y+18); ctx.lineTo(cx+12,y+18); ctx.lineTo(cx,y+48); ctx.fill(); }
+  else if(t>=TD&&t<TD+0.3){ ctx.fillStyle='rgba(224,84,74,.35)'; ctx.fillRect(0,0,W,H); }
+}
+
+const num=s=>parseFloat(s.replace(',','.'));
+
+function parse(){
+  const c=TXT[level], v=num($('val').value);
+  return (!isFinite(v)||v<c.min||v>c.max)?null:v;
+}
+
+function checkT(){
+  const c=TXT[level], v=num($('v1').value), m=$('m1');
+  if(!isFinite(v)){ m.className='msg bad'; m.textContent='Zadej periodu číslem v sekundách.'; return; }
+  if(Math.abs(v-c.T1)<=0.05){
+    m.className='msg ok'; m.textContent='Sedí, T = '+fmt(c.T1)+' s.';
+    $('v1').disabled=true; $('chk').disabled=true;
+    $('s2').classList.remove('locked'); $('val').disabled=false; $('go').disabled=false; $('val').focus();
+  } else {
+    m.className='msg bad';
+    m.textContent=(level===1&&Math.abs(v-Math.PI)<=0.05)?c.wrongPi:c.wrong1;
+  }
+}
+$('chk').addEventListener('click',checkT);
+$('v1').addEventListener('keydown',e=>{ if(e.key==='Enter') checkT(); });
+
+$('val').addEventListener('input',()=>{ if(raf) return; const v=parse(); p.v=v===null?TXT[level].def:v; draw(0); $('msg').textContent=''; });
+$('val').addEventListener('keydown',e=>{ if(e.key==='Enter') start(); });
+$('go').addEventListener('click',start);
+
+function start(){
+  if($('go').disabled) return;
+  const v=parse(), c=TXT[level], m=$('msg');
+  if(v===null){ m.className='msg bad'; m.textContent='Zadej číslo od '+c.min+' do '+c.max+' '+c.unit+'.'; return; }
+  p.v=v; m.className='msg'; m.textContent='';
+  cancelAnimationFrame(raf); $('go').disabled=true;
+  tEnd=level===1?Math.max(Math.PI*Math.sqrt(v/G),TD+TOL)+0.3:TD+1.5;
+  t0=performance.now();
+  const frame=now=>{
+    const t=Math.min((now-t0)/1000,tEnd); draw(t);
+    if(t<tEnd) raf=requestAnimationFrame(frame); else { raf=0; finish(); }
+  };
+  raf=requestAnimationFrame(frame);
+}
+
+function finish(){
+  const m=$('msg'); $('go').disabled=false;
+  if(level===1){
+    const tA=Math.PI*Math.sqrt(p.v/G), ok=Math.abs(tA-TD)<=TOL;
+    m.className='msg '+(ok?'ok':'bad');
+    m.textContent=ok?'Uvnitř! Přes propast ses zhoupl za '+fmt(tA)+' s, dveře se otevřely za 3,14 s.'
+      :'Dveře se nepodařilo stihnout. Zhoupl ses za '+fmt(tA)+' s, dveře se otevřely za 3,14 s.'
+       +(HINT?(tA<TD?' (Moc brzy.)':' (Moc pozdě.)'):'');
+  } else {
+    const T=2*Math.PI*Math.sqrt(M/p.v), ok=Math.abs(T-TD)<=TOL;
+    m.className='msg '+(ok?'ok':'bad');
+    m.textContent=ok?'Modul vystřelil! Perioda kmitu vyšla T = '+fmt(T)+' s.'
+      :'Zážeh proběhl mimo fázi. Pružina kmitá s periodou T = '+fmt(T)+' s.'
+       +(HINT?(T>TD?' (Příliš měkká pružina.)':' (Příliš tuhá pružina.)'):'');
+  }
+}
+
+function setLevel(n){
+  cancelAnimationFrame(raf); raf=0; level=n;
+  const c=TXT[n];
+  $('t1').setAttribute('aria-selected',n===1); $('t2').setAttribute('aria-selected',n===2);
+  $('story').textContent=c.story; $('q1').textContent=c.q1; $('q2').textContent=c.q2;
+  $('lab').textContent=c.lab; $('unit').textContent=c.unit; $('go').textContent=c.go;
+  $('v1').value=''; $('v1').disabled=false; $('chk').disabled=false; $('m1').textContent=''; $('m1').className='msg';
+  $('val').value=''; $('val').disabled=true; $('go').disabled=true; $('s2').classList.add('locked');
+  p.v=c.def; $('msg').textContent=''; $('msg').className='msg';
+  draw(0);
+}
+$('t1').onclick=()=>setLevel(1); $('t2').onclick=()=>setLevel(2);
+window.addEventListener('resize',resize);
+setLevel(1); resize();
+</script>
+</body>
+</html>
