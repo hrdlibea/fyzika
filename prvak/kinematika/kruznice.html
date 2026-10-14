@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kruhový pohyb a Radián - Simulace</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e74c3c;
+            --highlight: #3498db;
+            --bg: #ecf0f1;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .app-container {
+            display: flex;
+            gap: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            max-width: 1100px;
+            width: 100%;
+        }
+        .canvas-section {
+            flex: 0 0 500px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        canvas {
+            background: #fff;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+        }
+        .global-controls {
+            width: 100%;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-playpause {
+            flex: 1;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-playpause:hover { background: #1a252f; }
+        .btn-playpause.paused { background: #e67e22; }
+        
+        .controls-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #bdc3c7;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #7f8c8d;
+            cursor: pointer;
+            transition: 0.3s;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom: 3px solid var(--highlight);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        .panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid var(--highlight);
+            margin-bottom: 15px;
+        }
+        .panel h3 { margin-top: 0; color: var(--primary); }
+        .slider-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input[type="range"] { width: 100%; cursor: pointer; }
+        .live-data {
+            background: var(--primary);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        .val { color: #f1c40f; font-weight: bold; }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-action {
+            flex: 1;
+            background: var(--accent); color: white; border: none;
+            padding: 10px; border-radius: 5px; cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-action:hover { background: #c0392b; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="canvas-section">
+        <canvas id="simCanvas" width="450" height="450"></canvas>
+        <div class="global-controls">
+            <button id="pauseBtn" class="btn-playpause" onclick="togglePause()">⏸ Pozastavit čas</button>
+        </div>
+    </div>
+
+    <div class="controls-section">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(0)">1. Perioda</button>
+            <button class="tab-btn" onclick="switchTab(1)">2. Radián</button>
+            <button class="tab-btn" onclick="switchTab(2)">3. Rychlost</button>
+            <button class="tab-btn" onclick="switchTab(3)">4. Zrychlení</button>
+        </div>
+
+        <!-- TAB 1: Perioda a Frekvence -->
+        <div id="tab0" class="tab-content active">
+            <div class="panel">
+                <h3>Jak dlouho trvá jedna otočka?</h3>
+                <p>Každá změna frekvence okamžitě zresetuje těleso na start.</p>
+                <div class="slider-group">
+                    <label>Frekvence (f): <span id="val_f1" class="val">0.2</span> Hz</label>
+                    <input type="range" id="slider_f1" min="0.1" max="1" step="0.1" value="0.2">
+                </div>
+            </div>
+            <div class="live-data">
+                Uplynulý čas: <span id="time_elapsed">0.0</span> s<br>
+                Počet otoček: <span id="rotations">0</span><br><br>
+                Perioda T = 1 / f = <span id="calc_t1" class="val">5.0</span> s
+            </div>
+        </div>
+
+        <!-- TAB 2: Radián -->
+        <div id="tab1" class="tab-content">
+            <div class="panel" style="border-left-color: #e67e22;">
+                <h3>Vizuální definice úhlu</h3>
+                <p>Zvolte velikost poloměru a spusťte animaci namotávání oblouku na kružnici.</p>
+                <div class="slider-group">
+                    <label>Poloměr kružnice (r): <span id="val_r_rad" class="val">2.0</span> m</label>
+                    <input type="range" id="slider_r_rad" min="1.0" max="2.5" step="0.1" value="2.0">
+                </div>
+                <label>Spustit vizualizaci úhlu:</label>
+                <div class="btn-group">
+                    <button class="btn-action" style="background:#e67e22;" onclick="startRadianAnim(1)">1 rad</button>
+                    <button class="btn-action" style="background:#d35400;" onclick="startRadianAnim(Math.PI)">π rad (180°)</button>
+                    <button class="btn-action" style="background:#a84300;" onclick="startRadianAnim(2*Math.PI)">2π rad (360°)</button>
+                </div>
+            </div>
+            <div class="live-data" style="background: #e67e22;">
+                Aktuálně namotaný úhel: <span id="live_rad_angle" class="val">0.00</span> rad<br>
+                Délka oblouku (s): <span id="live_rad_arc" class="val">0.00</span> m
+            </div>
+        </div>
+
+        <!-- TAB 3: Rychlosti -->
+        <div id="tab2" class="tab-content">
+            <div class="panel" style="border-left-color: #27ae60;">
+                <h3>Vnitřní vs. vnější bod</h3>
+                <div class="slider-group">
+                    <label>Poloměr vnějšího bodu (r): <span id="val_r3" class="val">1.5</span> m</label>
+                    <input type="range" id="slider_r3" min="1.0" max="2.5" step="0.1" value="1.5">
+                </div>
+                <div class="slider-group">
+                    <label>Úhlová rychlost (ω): <span id="val_w3" class="val">1.0</span> rad/s</label>
+                    <input type="range" id="slider_w3" min="0.5" max="3" step="0.1" value="1.0">
+                </div>
+            </div>
+            <div class="live-data" style="background:#27ae60;">
+                Obvodová rychlost červeného: <span id="calc_v_in" class="val"></span> m/s<br>
+                Obvodová rychlost zeleného: <span id="calc_v_out" class="val"></span> m/s
+            </div>
+        </div>
+
+        <!-- TAB 4: Zrychlení -->
+        <div id="tab3" class="tab-content">
+            <div class="panel" style="border-left-color: #c0392b;">
+                <h3>Dostředivé zrychlení</h3>
+                <div class="slider-group">
+                    <label>Obvodová rychlost (v): <span id="val_v4" class="val">2.0</span> m/s</label>
+                    <input type="range" id="slider_v4" min="1" max="5" step="0.5" value="2.0">
+                </div>
+            </div>
+            <div class="live-data" style="background:#c0392b;">
+                Dostředivé zrychlení (a_d = v² / r): <span id="calc_a4" class="val"></span> m/s²
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const scale = 70; 
+    
+    let currentMode = 0;
+    let isPaused = false;
+    let lastTime = 0;
+    
+    // Globální proměnné fyziky
+    let angle = 0;
+    let totalTime = 0;
+    let rotationCount = 0;
+    let prevAngle = 0;
+
+    // Proměnné pro animaci radiánu
+    let radAnimActive = false;
+    let radAnimProgress = 0;
+    let radTargetAngle = 0;
+    let radRadius = 2.0;
+
+    function togglePause() {
+        isPaused = !isPaused;
+        const btn = document.getElementById('pauseBtn');
+        if (isPaused) {
+            btn.classList.add('paused');
+            btn.innerHTML = "▶ Přehrát čas";
+        } else {
+            btn.classList.remove('paused');
+            btn.innerHTML = "⏸ Pozastavit čas";
+        }
+    }
+
+    function switchTab(index) {
+        currentMode = index;
+        document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+        document.querySelectorAll('.tab-content').forEach((content, i) => content.classList.toggle('active', i === index));
+        resetPhysics();
+        if (index === 1) startRadianAnim(1); // Default animace při přepnutí
+        updateValues();
+    }
+
+    function resetPhysics() {
+        angle = 0;
+        totalTime = 0;
+        rotationCount = 0;
+        prevAngle = 0;
+        radAnimActive = false;
+    }
+
+    // Reset na slider v záložce 1
+    document.getElementById('slider_f1').addEventListener('input', () => {
+        resetPhysics();
+        updateValues();
+    });
+
+    function startRadianAnim(targetAng) {
+        radTargetAngle = targetAng;
+        radRadius = parseFloat(document.getElementById('slider_r_rad').value);
+        radAnimActive = true;
+        radAnimProgress = 0; // Začínáme od nuly
+    }
+
+    function drawArrow(fromX, fromY, toX, toY, color, label, labelOffset = 20) {
+        const headlen = 10;
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const ang = Math.atan2(dy, dx);
+        
+        ctx.beginPath(); ctx.moveTo(fromX, fromY); ctx.lineTo(toX, toY);
+        ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(toX, toY);
+        ctx.lineTo(toX - headlen * Math.cos(ang - Math.PI / 6), toY - headlen * Math.sin(ang - Math.PI / 6));
+        ctx.lineTo(toX - headlen * Math.cos(ang + Math.PI / 6), toY - headlen * Math.sin(ang + Math.PI / 6));
+        ctx.lineTo(toX, toY);
+        ctx.fillStyle = color; ctx.fill();
+        
+        ctx.fillStyle = color; ctx.font = "bold 16px Arial";
+        ctx.fillText(label, toX + labelOffset * Math.cos(ang) - 5, toY + labelOffset * Math.sin(ang) + 5);
+    }
+
+    function updateValues() {
+        if(currentMode === 0) {
+            let f = parseFloat(document.getElementById('slider_f1').value);
+            document.getElementById('val_f1').innerText = f.toFixed(1);
+            document.getElementById('calc_t1').innerText = (1/f).toFixed(2);
+        } else if(currentMode === 1) {
+            radRadius = parseFloat(document.getElementById('slider_r_rad').value);
+            document.getElementById('val_r_rad').innerText = radRadius.toFixed(1);
+        } else if(currentMode === 2) {
+            let r_out = parseFloat(document.getElementById('slider_r3').value);
+            let w = parseFloat(document.getElementById('slider_w3').value);
+            document.getElementById('val_r3').innerText = r_out.toFixed(1);
+            document.getElementById('val_w3').innerText = w.toFixed(1);
+            document.getElementById('calc_v_in').innerText = (w * 0.8).toFixed(2); 
+            document.getElementById('calc_v_out').innerText = (w * r_out).toFixed(2);
+        } else if(currentMode === 3) {
+            let v = parseFloat(document.getElementById('slider_v4').value);
+            document.getElementById('val_v4').innerText = v.toFixed(1);
+            document.getElementById('calc_a4').innerText = ((v*v)/2.0).toFixed(2);
+        }
+    }
+
+    document.querySelectorAll('input[type="range"]').forEach(sl => sl.addEventListener('input', updateValues));
+
+    function render(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = isPaused ? 0 : (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.beginPath();
+        ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height);
+        ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy);
+        ctx.strokeStyle = '#ecf0f1'; ctx.lineWidth = 1; ctx.stroke();
+
+        let R_px, objX, objY;
+
+        switch(currentMode) {
+            case 0:
+                R_px = 2.0 * scale;
+                let f = parseFloat(document.getElementById('slider_f1').value);
+                angle += (2 * Math.PI * f) * dt;
+                totalTime += dt;
+                
+                if (angle % (2*Math.PI) < prevAngle % (2*Math.PI) && prevAngle > 0) rotationCount++;
+                prevAngle = angle;
+                
+                document.getElementById('time_elapsed').innerText = totalTime.toFixed(1);
+                document.getElementById('rotations').innerText = rotationCount;
+
+                ctx.beginPath(); ctx.arc(cx, cy, R_px, 0, 2*Math.PI); ctx.strokeStyle='#bdc3c7'; ctx.stroke();
+                objX = cx + Math.cos(angle) * R_px; objY = cy + Math.sin(angle) * R_px;
+                
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(objX, objY); ctx.strokeStyle='#7f8c8d'; ctx.stroke();
+                ctx.beginPath(); ctx.arc(objX, objY, 12, 0, 2*Math.PI); ctx.fillStyle='#3498db'; ctx.fill();
+                break;
+
+            case 1:
+                R_px = radRadius * scale;
+                ctx.beginPath(); ctx.arc(cx, cy, R_px, 0, 2*Math.PI); ctx.strokeStyle='#ecf0f1'; ctx.lineWidth=2; ctx.stroke();
+                
+                // Vykreslení modrého poloměru
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + R_px, cy);
+                ctx.strokeStyle = '#2980b9'; ctx.lineWidth = 3; ctx.stroke();
+                ctx.fillStyle = '#2980b9'; ctx.font = "bold 16px Arial"; ctx.fillText("r", cx + R_px/2, cy - 10);
+
+                if (radAnimActive) {
+                    radAnimProgress += dt * 0.4; // Rychlost animace
+                    if (radAnimProgress > 1) radAnimProgress = 1;
+
+                    let currentAngle = radAnimProgress * radTargetAngle;
+                    let totalLength = radTargetAngle * R_px;
+                    let arcLength = currentAngle * R_px;
+                    let straightLength = totalLength - arcLength;
+
+                    document.getElementById('live_rad_angle').innerText = currentAngle.toFixed(2);
+                    document.getElementById('live_rad_arc').innerText = (currentAngle * radRadius).toFixed(2);
+
+                    // 1. Namotaný červený oblouk
+                    if (currentAngle > 0) {
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, R_px, 0, currentAngle, false);
+                        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 5; ctx.stroke();
+                    }
+
+                    // 2. Zbylá rovná úsečka (připojená tangenciálně)
+                    if (straightLength > 0) {
+                        let startX = cx + R_px * Math.cos(currentAngle);
+                        let startY = cy + R_px * Math.sin(currentAngle);
+                        // Tangenta je vždy otočená o 90 stupňů (PI/2) vůči poloměru
+                        let tangentDir = currentAngle + Math.PI/2; 
+                        let endX = startX + straightLength * Math.cos(tangentDir);
+                        let endY = startY + straightLength * Math.sin(tangentDir);
+
+                        ctx.beginPath(); ctx.moveTo(startX, startY); ctx.lineTo(endX, endY);
+                        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 5; ctx.stroke();
+                    }
+                    
+                    // Spojnice k aktuální pozici
+                    if (currentAngle > 0 && currentAngle <= 2*Math.PI) {
+                        ctx.beginPath(); ctx.moveTo(cx, cy); 
+                        ctx.lineTo(cx + R_px * Math.cos(currentAngle), cy + R_px * Math.sin(currentAngle));
+                        ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 2; ctx.stroke();
+                    }
+                }
+                break;
+
+            case 2:
+                let w_speed = parseFloat(document.getElementById('slider_w3').value);
+                angle += w_speed * dt;
+                
+                let r_in_px = 0.8 * scale;
+                let r_out_px = parseFloat(document.getElementById('slider_r3').value) * scale;
+                
+                ctx.beginPath(); ctx.arc(cx, cy, r_out_px, 0, 2*Math.PI); ctx.strokeStyle='#bdc3c7'; ctx.setLineDash([5,5]); ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx, cy, r_in_px, 0, 2*Math.PI); ctx.stroke(); ctx.setLineDash([]);
+                
+                let inX = cx + Math.cos(angle) * r_in_px; let inY = cy + Math.sin(angle) * r_in_px;
+                let outX = cx + Math.cos(angle) * r_out_px; let outY = cy + Math.sin(angle) * r_out_px;
+
+                ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(outX, outY); ctx.strokeStyle='#7f8c8d'; ctx.stroke();
+                
+                let v_in = w_speed * 0.8 * 20; let v_out = w_speed * (r_out_px/scale) * 20; 
+                drawArrow(inX, inY, inX + Math.cos(angle+Math.PI/2)*v_in, inY + Math.sin(angle+Math.PI/2)*v_in, '#e74c3c', 'v₁');
+                drawArrow(outX, outY, outX + Math.cos(angle+Math.PI/2)*v_out, outY + Math.sin(angle+Math.PI/2)*v_out, '#27ae60', 'v₂');
+
+                ctx.beginPath(); ctx.arc(inX, inY, 10, 0, 2*Math.PI); ctx.fillStyle='#e74c3c'; ctx.fill();
+                ctx.beginPath(); ctx.arc(outX, outY, 10, 0, 2*Math.PI); ctx.fillStyle='#27ae60'; ctx.fill();
+                break;
+
+            case 3:
+                R_px = 2.0 * scale;
+                let v_lin = parseFloat(document.getElementById('slider_v4').value);
+                angle += (v_lin / 2.0) * dt;
+                
+                ctx.beginPath(); ctx.arc(cx, cy, R_px, 0, 2*Math.PI); ctx.strokeStyle='#ecf0f1'; ctx.lineWidth=2; ctx.stroke();
+                
+                objX = cx + Math.cos(angle) * R_px; objY = cy + Math.sin(angle) * R_px;
+                
+                drawArrow(objX, objY, objX + Math.cos(angle+Math.PI/2)*(v_lin*15), objY + Math.sin(angle+Math.PI/2)*(v_lin*15), '#3498db', 'v');
+                drawArrow(objX, objY, objX + Math.cos(angle+Math.PI)* ((v_lin*v_lin/2.0)*8), objY + Math.sin(angle+Math.PI)* ((v_lin*v_lin/2.0)*8), '#c0392b', 'a_d');
+
+                ctx.beginPath(); ctx.arc(objX, objY, 12, 0, 2*Math.PI); ctx.fillStyle='#2c3e50'; ctx.fill();
+                break;
+        }
+
+        ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 2*Math.PI); ctx.fillStyle='#333'; ctx.fill();
+        requestAnimationFrame(render);
+    }
+
+    updateValues();
+    requestAnimationFrame(render);
+</script>
+</body>
+</html>
