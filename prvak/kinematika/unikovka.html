@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>ORION-9 // Záchranná mise</title>
+<style>
+:root{--g:#3dff7a;--gd:#5fbf80;--line:#1a8f45;--a:#ffb000;--r:#ff3b30}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:#000;color:var(--g);font:16px/1.5 ui-monospace,Menlo,Consolas,"Courier New",monospace;text-shadow:0 0 6px rgba(61,255,122,.45)}
+body{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#crt{position:fixed;inset:0;pointer-events:none;z-index:50;background:repeating-linear-gradient(0deg,rgba(0,0,0,.3) 0 1px,transparent 1px 3px);box-shadow:inset 0 0 110px rgba(0,0,0,.95);animation:fl 6s infinite}
+@keyframes fl{0%,90%,100%{opacity:1}92%{opacity:.8}94%{opacity:1}97%{opacity:.88}}
+#fl{position:fixed;inset:0;background:var(--r);opacity:0;pointer-events:none;z-index:60}
+#fl.on{animation:rf .7s}
+@keyframes rf{0%{opacity:.65}30%{opacity:0}50%{opacity:.5}100%{opacity:0}}
+header{position:sticky;top:0;z-index:5;background:#000;border-bottom:1px solid var(--line);padding:10px 14px;display:flex;justify-content:space-between;align-items:center}
+#logo{font-weight:700;letter-spacing:.15em;user-select:none}
+#clk{font-size:30px;font-weight:700;text-align:right;line-height:1}
+#clk.low{color:var(--r);text-shadow:0 0 8px var(--r);animation:bl 1s steps(2) infinite}
+@keyframes bl{50%{opacity:.4}}
+#pen{font-size:12px;color:var(--a);text-align:right;min-height:18px}
+main{padding:14px;max-width:560px;margin:0 auto}
+h1{font-size:22px;margin:8px 0;letter-spacing:.08em}
+.lh{color:var(--a);font-weight:700;letter-spacing:.06em}
+.dim{color:var(--gd)}
+.box{border:1px solid var(--line);padding:12px;margin:12px 0;background:rgba(61,255,122,.05)}
+.box.warn{border-color:var(--a)}
+.box.ok{border-color:var(--g)}
+.bl{color:var(--a);font-size:12px;letter-spacing:.12em;margin-bottom:6px}
+button{font:inherit;font-weight:700;letter-spacing:.06em;color:#000;background:var(--g);border:0;padding:14px;width:100%;margin:6px 0;text-shadow:none;cursor:pointer}
+button.s{background:transparent;color:var(--g);border:1px solid var(--g);text-shadow:inherit}
+button:disabled{opacity:.35}
+input{font:inherit;font-size:18px;width:100%;background:#000;color:var(--g);border:1px solid var(--g);padding:12px;margin:6px 0;text-transform:uppercase;border-radius:0}
+input#in{text-transform:none}
+.code{font-size:28px;color:var(--a);text-align:center;letter-spacing:.15em;padding:10px;text-shadow:0 0 8px var(--a)}
+#msg{color:var(--r);min-height:24px}
+.cur::after{content:"█";animation:bl 1s steps(2) infinite}
+#adm{position:fixed;inset:0;z-index:70;background:#000;overflow:auto;padding:14px}
+header{flex-wrap:wrap}
+#bars{flex-basis:100%;font-size:12px;margin-top:8px}
+.seg{display:flex;gap:4px;margin-bottom:6px}.seg b{flex:1;height:8px;border:1px solid var(--line)}.seg b.d{background:var(--g)}.seg b.c{background:var(--a);animation:bl 1s steps(2) infinite}
+.bar{height:8px;border:1px solid var(--line);margin:3px 0}.bar i{display:block;height:100%;background:var(--g);transition:width .5s}.bar.low i{background:var(--r)}
+#snd{cursor:pointer;color:var(--gd)}
+body.low #crt{box-shadow:inset 0 0 90px rgba(255,59,48,.6)}
+.shake{animation:sh .4s}@keyframes sh{20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+canvas{width:100%;display:block;border:1px solid var(--line);background:#000;margin:8px 0}
+#msg{white-space:pre-line}
+.kora{max-width:532px;width:calc(100% - 28px);margin:12px auto 0;border-color:var(--a)}#kt{color:var(--a);min-height:48px;text-shadow:0 0 6px rgba(255,176,0,.5)}
+</style>
+</head>
+<body>
+<div id="crt"></div><div id="fl"></div>
+<header>
+  <div id="logo" onclick="tap()">ORION-9<div class="dim" style="font-size:11px;font-weight:400" id="rl"></div></div>
+  <div><div id="clk">35:00</div><div id="pen"></div></div>
+<div id="bars" hidden><div class="seg" id="pg"></div>
+    <div style="display:flex;justify-content:space-between"><span>O₂ ZÁSOBA <span id="o2t"></span></span><span id="snd" onclick="tsnd()">[ZVUK: VYP]</span></div>
+    <div class="bar" id="o2"><i></i></div></div>
+</header>
+<div id="kbox" class="box kora" hidden><div class="bl">KORA // LODNÍ AI</div><div id="kt"></div></div>
+<main id="v"></main>
+<div id="adm" hidden></div>
+
+<script>
+// ===== NASTAVENÍ (uprav podle potřeby) =====
+const LIMIT = 35*60;          // časový limit v sekundách
+const ADMIN = "HOUSTON";      // PIN do skrytého admin panelu (5× klepni na nápis ORION-9)
+const PEN_WRONG = 30, PEN_HINT = [30,60];
+
+const ROLE = {cap:"KAPITÁN", nav:"NAVIGÁTOR", eng:"INŽENÝR"};
+const MOD  = {cap:"VELITELSKÝ TERMINÁL", nav:"NAVIGAČNÍ MODUL", eng:"INŽENÝRSKÝ MODUL"};
+const DESC = {cap:"Zadáváš výsledek do terminálu a diktuješ posádce přístupový kód. Nemáš žádná vstupní data!",
+              nav:"Vidíš navigační data. Přečti je posádce a získej od ostatních, co potřebuješ.",
+              eng:"Vidíš technická data lodi. Přečti je posádce a získej od ostatních, co potřebuješ."};
+
+const L = [
+{t:"ZPOŽDĚNÝ START",
+ st:"Nouzový dron A letí se vzorky k dronu B. Dron B měl vyletět naproti, ale kvůli chybě systému se jeho start opozdil.",
+ nav:"Vzdálenost mezi základnami obou dronů je 54 km. Dron A odstartoval přesně ve 12:00:00. Hmotnost nákladu: 15 kg.",
+ eng:"Cestovní rychlost Dronu A je 200 m/s. Rychlost Dronu B je 300 m/s. Systémový log ukazuje, že Dron B odstartoval se zpožděním 30 sekund za Dronem A.",
+ cap:"Zadejte čas v sekundách (měřeno od startu Dronu A), kdy dojde k setkání dronů.",
+ u:"s", ans:126, pw:"KRAKEN",
+ h:["Systémová chyba: nekompatibilita jednotek (km a m/s). Dron B letí do okamžiku setkání kratší dobu než dron A.",
+    "Součet drah dronů je celá vzdálenost: v_A·t + v_B·(t − 30) = d  (d převeď na metry)"],
+ sol:"200t + 300(t − 30) = 54 000 → t = 126 s", noise:"hmotnost nákladu"},
+{t:"BRZDĚNÍ S REAKČNÍ DOBOU",
+ st:"Loď se řítí k doku. Systém automatického brzdění selhal, musíme brzdit manuálně, ale lodní počítač má latenci ve zpracování příkazu.",
+ nav:"Rychlostní radar: blížíme se k doku rychlostí 144 km/h.",
+ eng:"Maximální výkon brzdných trysek vyvine zpomalení 5 m/s². Zpracování příkazu k brzdění centrálním počítačem (reakční doba) trvá přesně 1,5 sekundy. Hmotnost modulu je 12 tun.",
+ cap:"Zadejte celkovou dráhu v metrech, kterou modul urazí od okamžiku stisknutí tlačítka BRZDIT až do úplného zastavení.",
+ u:"m", ans:220, pw:"HELIOS",
+ h:["Systémová chyba: nekompatibilita jednotek km/h a m/s. Během reakční doby loď ještě nebrzdí.",
+    "s = v·t_r + v² / (2a)  (rovnoměrný pohyb + rovnoměrně zpomalený pohyb)"],
+ sol:"v = 40 m/s; s₁ = 40·1,5 = 60 m; s₂ = 40²/(2·5) = 160 m; celkem 220 m", noise:"hmotnost modulu"},
+{t:"SYNCHRONIZACE CENTRIFUGY",
+ st:"Aby se oddělila mimozemská plazma od krve, musíme nastavit centrifugu na naprosto přesné dostředivé zrychlení, ale zadávací panel přijímá hodnoty jen ve starých jednotkách.",
+ nav:"Poloměr centrifugy je 1000 cm. Nutné dostředivé zrychlení pro separaci je 400 m/s².",
+ eng:"Teplota ložisek 45 °C. Pro zjednodušení inženýrských výpočtů centrální systém používá aproximaci π² = 10. Řídicí panel přijímá hodnoty výhradně v otáčkách za minutu (RPM)!",
+ cap:"Zadejte požadovanou frekvenci centrifugy v otáčkách za minutu (RPM).",
+ u:"RPM", ans:60, pw:"ZENIT",
+ h:["Systémová chyba: poloměr je v cm a panel nechce Hz, ale otáčky za minutu.",
+    "a_d = ω²·r = 4π²·f²·r  →  f = √(a_d / (4π²·r)),  RPM = 60·f"],
+ sol:"r = 10 m; 400 = 4·10·f²·10 → f = 1 Hz → 60 ot/min", noise:"teplota ložisek"},
+{t:"VEKTOR PROTI PROUDU",
+ st:"Záchranný člun musí přeletět řeku tekuté plazmy a trefit dok, který je přesně naproti. Pokud poletíme kolmo, proud nás snese a dok mineme. Musíme letět šikmo proti proudu.",
+ nav:"Šířka plazmové řeky je 480 km. Cílový dok leží přesně kolmo na druhém břehu. Proud plazmy nás odnáší rychlostí 9 km/s na jih.",
+ eng:"Maximální konstrukční rychlost našeho člunu je 15 km/s. Kapacita člunu: 15 osob. Varování: motory musí směřovat šikmo proti proudu, jinak cíl mineme.",
+ cap:"Palubní počítač vypočítal optimální úhel letu. Zadejte očekávaný čas přeletu k cílovému doku v sekundách.",
+ u:"s", ans:40, pw:"OMEGA",
+ h:["Člun musí vyrušit snášení proudem: složka jeho rychlosti proti proudu je rovna 9 km/s. Rychlost 15 km/s je přepona pravoúhlého trojúhelníku.",
+    "v_k = √(v_č² − v_p²),  t = d / v_k"],
+ sol:"v_k = √(15² − 9²) = 12 km/s; t = 480 / 12 = 40 s", noise:"kapacita člunu"}
+];
+
+// ===== STAV (ukládá se v telefonu, přežije obnovení stránky) =====
+const K="orion9v1", $=s=>document.querySelector(s);
+const fresh=()=>({role:null,t0:null,end:null,res:null,lv:0,pen:0,h:{},pass:null,vw:null});
+let S; try{S=JSON.parse(localStorage.getItem(K))||fresh()}catch(e){S=fresh()}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const rem=()=>S.t0?Math.floor(LIMIT-((S.end||Date.now())-S.t0)/1000-S.pen):LIMIT;
+const fmt=s=>{s=Math.max(0,s);return String(s/60|0).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
+const code=pw=>pw+"-"+Math.ceil(S.pen/30);
+
+function tick(){
+  const r=rem(), c=$("#clk");
+  c.textContent=fmt(r); c.classList.toggle("low",r<300&&!S.end);
+  $("#pen").textContent=S.pen?"penalizace −"+S.pen+" s":"";
+  $("#rl").textContent=S.role?ROLE[S.role]:"";
+  $("#bars").hidden=!S.t0; const pc=Math.max(0,r/LIMIT*100);
+  $("#o2 i").style.width=pc+"%"; $("#o2").classList.toggle("low",r<300); $("#o2t").textContent=Math.round(pc)+" %";
+  $("#pg").innerHTML=L.map((_,i)=>`<b class="${i<S.lv||S.res==="win"?"d":i===S.lv?"c":""}"></b>`).join("");
+  document.body.classList.toggle("low",r<300&&!S.end&&!!S.t0);
+  if(S.t0&&!S.end){const cr=[1200,600,300,120,60,30].filter(x=>r<=x&&!(S.kw||[]).includes(x));
+    if(cr.length){S.kw=(S.kw||[]).concat(cr);save();say(KT[Math.min(...cr)])}}
+  if(S.t0&&!S.end&&r<=0){S.end=Date.now();S.res="fail";save();say(KFAIL);render()}
+}
+function bad(m){
+  const f=$("#fl");f.classList.remove("on");void f.offsetWidth;f.classList.add("on");
+  if(navigator.vibrate)navigator.vibrate([120,60,120]);
+  const mn=$("main");mn.classList.remove("shake");void mn.offsetWidth;mn.classList.add("shake");beep(110,.3,"sawtooth");
+  const e=$("#msg"); if(e&&m)e.textContent=m;
+}
+
+// ===== OBRAZOVKY =====
+function render(){
+  const v=$("#v"),ov=$("#in")?$("#in").value:""; tick(); cancelAnimationFrame(raf);
+  if(!S.role) v.innerHTML=`<h1 class=cur>ZÁCHRANNÝ PROTOKOL</h1>
+    <p class=dim>Stanice ORION-9 ztratila kontakt s vnějším okruhem. Vyber svou roli. V týmu musí být každá role zastoupena.</p>`+
+    Object.keys(ROLE).map(r=>`<div class=box><div class=bl>${ROLE[r]}</div><p>${DESC[r]}</p><button onclick="pick('${r}')">ZVOLIT: ${ROLE[r]}</button></div>`).join("");
+  else if(!S.t0) v.innerHTML=`<h1>ROLE: ${ROLE[S.role]}</h1><div class=box><p>${DESC[S.role]}</p></div>
+    <p>Nikdo z posádky nemá kompletní zadání. <b>Mluvte nahlas</b>, spojte data a vypočítejte výsledek.</p>
+    <p class=dim>Čas: ${fmt(LIMIT)}. Špatný výsledek = −${PEN_WRONG} s. Počkej na povel učitele.</p>
+    <button onclick="start()">ZAHÁJIT MISI</button><button class=s onclick="pick(null)">změnit roli</button>`;
+  else if(S.res==="win") v.innerHTML=`<h1>MISE SPLNĚNA</h1><canvas id=sim data-i=3 width=520 height=180></canvas><div class="box ok"><p>Zbývající čas: <b>${fmt(rem())}</b><br>Penalizace: ${S.pen} s<br>Hodnost: <b>${rank()}</b></p>
+    ${S.role==="cap"?`<p>Nadiktuj posádce závěrečný kód:</p><div class=code id=cc data-c="${S.pass}">${S.pass}</div><p class=dim>Oficiální čas týmu je na zařízení Kapitána.</p>`:`<p class=dim>Oficiální čas týmu je na zařízení Kapitána.</p>`}</div>`;
+  else if(S.res==="fail") v.innerHTML=`<h1 style="color:var(--r)">MISE SELHALA</h1><div class="box warn"><p>Čas vypršel. Posádka je ztracena.</p><p class=dim>Obrať se na velení (učitele).</p></div>`;
+  else{v.innerHTML=lvl();const e=$("#in");if(e&&ov)e.value=ov}
+  post();
+}
+function lvl(){
+  const i=S.vw==null?S.lv:S.vw;
+  if(i<S.lv){
+    const l=L[i], r=S.role;
+    return `<div class=lh>ARCHIV // ÚROVEŇ ${i+1}/4 // ${l.t}</div><p class=dim>${l.st}</p>
+    <div class=box><div class=bl>${MOD[r]}</div><p>${r==="cap"?l.cap:l[r]}</p></div><canvas id=sim data-i=${i} width=520 height=180></canvas><p class=dim>Tato úroveň je splněná.</p>`+
+    (i>0?`<button class=s onclick="go(${i-1})">← DÁL ZPĚT</button>`:"")+`<button onclick="go(null)">ZPĚT NA AKTUÁLNÍ ÚROVEŇ</button>`;
+  }
+  return cur()+(S.lv>0?`<button class=s onclick="go(${S.lv-1})">← PŘEDCHOZÍ ÚROVEŇ</button>`:"");
+}
+function go(i){S.vw=i;save();render();window.scrollTo(0,0)}
+function cur(){
+  const l=L[S.lv], r=S.role, n=S.h[S.lv]||0;
+  let h=`<div class=lh>ÚROVEŇ ${S.lv+1}/4 // ${l.t}</div><p class=dim id=st></p>
+    <div class=box><div class=bl>${MOD[r]}</div><p>${r==="cap"?l.cap:l[r]}</p></div>`;
+  if(r!=="cap") return h+`<div class="box warn"><div class=bl>ZÁMEK</div><p>Čekáš na přístupový kód od Kapitána.</p>
+    <input id=cd placeholder="kód" autocomplete=off autocapitalize=characters><div id=msg></div><button onclick="enter()">ZADAT KÓD</button></div>`;
+  if(S.pass) return h+`<canvas id=sim data-i=${S.lv} width=520 height=180></canvas><div class="box ok"><div class=bl>PŘÍSTUP ODEMČEN</div><p>Nadiktuj posádce kód:</p><div class=code id=cc data-c="${S.pass}">${S.pass}</div>
+    <p class=dim>Až ho Navigátor i Inženýr zadají, načti další úroveň.</p></div><button onclick="next()">NAČÍST DALŠÍ ÚROVEŇ</button>`;
+  h+=`<input id=in inputmode=decimal placeholder="výsledek [${l.u}]" autocomplete=off><div id=msg></div><button id=sb onclick="submit()">ODESLAT</button>`;
+  for(let i=0;i<n;i++) h+=`<div class="box warn"><div class=bl>ASISTENCE ${i+1}</div><p>${l.h[i]}</p></div>`;
+  if(n<2) h+=`<button class=s onclick="hint()">${armed?"POTVRDIT ASISTENCI":"VYŽÁDAT_ASISTENCI"} (−${PEN_HINT[n]} s)</button>`;
+  return h;
+}
+
+// ===== AKCE =====
+function pick(r){S.role=r;save();render()}
+function start(){S.t0=Date.now();S.kw=[];save();say(KS);render()}
+function submit(){
+  const x=parseFloat($("#in").value.replace(",","."));
+  if(isNaN(x))return bad("Zadej číslo.");
+  const l=L[S.lv];
+  if(Math.abs(x-l.ans)<1e-6){
+    if(S.lv===3){S.end=Date.now();S.res="win"}
+    S.pass=code(l.pw); say(S.lv===3?KWIN:rnd(KOK)); render();
+  }else{
+    S.pen+=PEN_WRONG; (S.wr=S.wr||{})[S.lv]=(S.wr[S.lv]||0)+1; save(); tick();
+    bad("NESPRÁVNÝ VÝSTUP. Penalizace −"+PEN_WRONG+" s."); const w=S.wr[S.lv]; say(rnd(w>=3?KW3:w===2?KW2:KW1));
+    $("#in").value=""; const b=$("#sb"); b.disabled=true; setTimeout(()=>b.disabled=false,3000);
+  }
+}
+function enter(){
+  const v=$("#cd").value.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f\s]/g,"");
+  const m=v.match(/^([A-Z]+)-?(\d*)$/);
+  if(m&&m[1]===L[S.lv].pw){
+    if(m[2])S.pen=Math.max(S.pen,m[2]*30);   // synchronizace penalizace s Kapitánem
+    if(S.lv===3){S.end=Date.now();S.res="win"}else S.lv++;
+    S.vw=null; save(); say(S.res==="win"?KWIN:rnd(KOC)); render();
+  }else{bad("NEPLATNÝ KÓD.");say(rnd(KCW))}
+}
+function next(){S.lv++;S.pass=null;S.vw=null;save();render()}
+let armed=false,ht;
+function hint(){
+  const n=S.h[S.lv]||0;
+  if(!armed){armed=true;clearTimeout(ht);ht=setTimeout(()=>{armed=false;render()},4000);return render()}   // 1. klepnutí = potvrzení
+  armed=false;clearTimeout(ht);
+  S.pen+=PEN_HINT[n]; S.h[S.lv]=n+1; beep(440,.12); say(rnd(KH)); render();
+}
+
+// ===== SKRYTÝ ADMIN PANEL (učitel / Houston) =====
+let taps=0,tt;
+function tap(){taps++;clearTimeout(tt);tt=setTimeout(()=>taps=0,2000);if(taps>=5){taps=0;pin()}}
+function pin(){
+  const a=$("#adm"); a.hidden=false;
+  a.innerHTML=`<h1>ADMIN</h1><input id=pn type=password placeholder="PIN" autocomplete=off><div id=msg></div>
+  <button onclick="chk()">VSTOUPIT</button><button class=s onclick="$('#adm').hidden=true">ZAVŘÍT</button>`;
+}
+function chk(){if($("#pn").value.toUpperCase()===ADMIN)adm();else bad("Špatný PIN.")}
+function adm(sol){
+  const a=$("#adm"); a.hidden=false;
+  a.innerHTML=`<h1>ADMIN</h1><p class=dim>Penalizace platí jen na tomto zařízení – dávej ji na telefonu Kapitána.</p>
+  <button onclick="adj(30)">PENALIZACE −30 s</button><button onclick="adj(60)">PENALIZACE −60 s</button>
+  <button class=s onclick="adj(-60)">BONUS +60 s</button>
+  <button class=s onclick="skip()">PŘESKOČIT NA DALŠÍ ÚROVEŇ (test)</button>
+  <button class=s onclick="adm(!${!!sol})">ŘEŠENÍ (Houston)</button>
+  ${sol?L.map((l,i)=>`<div class=box><div class=bl>ÚROVEŇ ${i+1}: ${l.t}</div><p>${l.sol}</p><p>Výsledek: <b>${l.ans} ${l.u}</b> | kód: <b>${l.pw}-n</b><br><span class=dim>šum: ${l.noise}</span></p></div>`).join(""):""}
+  <button class=s onclick="S=fresh();tk=null;Q.length=0;save();$('#adm').hidden=true;render()">RESET ZAŘÍZENÍ (smaže postup, role i čas)</button>
+  <button onclick="$('#adm').hidden=true">ZAVŘÍT</button>`;
+}
+function adj(n){S.pen=Math.max(0,S.pen+n);save();tick();say(n>0?rnd(KA):"Zásoby kyslíku doplněny.");$("#adm").hidden=true;render()}
+function skip(){if(S.t0&&!S.end&&S.lv<3){S.lv++;S.pass=null;S.vw=null;save()}$("#adm").hidden=true;render()}
+
+// ===== HERNÍ EFEKTY =====
+const KS="Systémy online. Jsem KORA, lodní inteligence stanice ORION-9. Kyslíku je na 35 minut. Využijte je dobře.";
+const INTRO=["Spojení s drony navázáno. Časování bude kritické.","Modul se blíží k doku. Brzdný systém neodpovídá.","Centrifuga čeká na kalibraci. Plazma nepočká.","Poslední překážka: plazmová řeka. Proud nikoho nešetří."];
+const KOK=["Přístup odemčen. Výpočet souhlasí.","Potvrzuji. Přesně tak.","Výstup přijat. Dobrá práce, posádko.","Souhlasí. Rád to slyším."];
+const KOC=["Autorizace ověřena. Načítám další sektor.","Kód přijat. Pokračujeme.","Přístup potvrzen."];
+const KCW=["Neplatný kód. Zeptejte se Kapitána ještě jednou.","Autorizace zamítnuta.","Ten kód nepoznávám. Přepsali jste ho přesně?"];
+const KW1=["Výstup odmítnut. Číslo neodpovídá mé simulaci.","Hmm. S tímhle by loď nepřežila.","Negativní. Porovnejte si poznámky s ostatními.","Moje senzory s vaším číslem nesouhlasí.","Chyba. Mluvte spolu, posádko."];
+const KW2=["Druhý neúspěch. Doporučuji ověřit postup, ne jen čísla.","Kyslík ubývá a vy hádáte? Počítejte.","Znovu mimo. Má každý z vás opravdu všechna data?"];
+const KW3=["Další pokus, další chyba. Zvažte žádost o asistenci.","Statisticky vám zbývá málo kyslíku. Zpomalte a přepočítejte.","Začínám mít o posádku obavy."];
+const KH=["Posílám pomoc. Čas je ale pryč.","Asistence odeslána. Příště to zkuste sami.","Pomoc není zadarmo. Kyslík taky ne."];
+const KA=["Velení si účtuje poplatek za konzultaci.","Zjištěna porucha systému. Čas byl odečten.","Velení vás kontaktovalo. Kyslík to bohužel zaplatí."];
+const KT={1200:"Zbývá 20 minut kyslíku.",600:"Deset minut. Čas běží rychleji, než si myslíte.",300:"Varování: O₂ pod kritickou hranicí. Pět minut.",120:"Dvě minuty. Doporučuji nepanikařit. Ale pospíšit si.",60:"Poslední minuta.",30:"Třicet sekund. Je mi to líto."};
+const KWIN="Mise splněna. Posádka přežila. Zaznamenávám vaši hodnost.", KFAIL="Kyslík vyčerpán. Konec přenosu.";
+const rnd=a=>{let x;do x=a[Math.random()*a.length|0];while(x===S.k&&a.length>1);return x};
+const STORY_MS=42, KORA_MS=26;
+const GAP_MS=1500;   // prodleva mezi dopsáním jednoho textu a začátkem dalšího
+function job(o){Q.push(o);if(!qb)run()}
+function run(){
+  const j=Q.shift(); if(!j){qb=false;curJ=null;return}
+  qb=true;curJ=j; if(j.valid&&!j.valid())return run();
+  let i=0,done=false,iv;
+  const end=ok=>{if(done)return;done=true;clearInterval(iv);if(ok&&j.done)j.done();setTimeout(run,GAP_MS)};
+  j.fin=()=>{j.set(j.text);end(true)}; j.abort=()=>end(false);
+  iv=setInterval(()=>{if(j.valid&&!j.valid())return end(false);j.set(j.text.slice(0,++i));if(i>=j.text.length)end(true)},j.ms);
+}
+function say(t){
+  S.k=t;save();$("#kbox").hidden=!S.t0;const e=$("#kt");e.dataset.cur=t;e.textContent="";
+  for(let i=Q.length-1;i>=0;i--)if(Q[i].kora)Q.splice(i,1);   // novější hláška nahradí čekající
+  if(curJ&&curJ.kora&&curJ.abort)curJ.abort();
+  job({kora:1,text:t,ms:KORA_MS,set:x=>{const e=$("#kt");if(e)e.textContent=x}});
+}
+const rank=()=>{const r=rem();return r>=840?"HRDINA ORIONU":r>=420?"ZKUŠENÝ VELITEL":"TĚSNĚ PŘEŽILI"};
+let snd=false,ac,raf,tk,dk,ty="",Q=[],qb=false,curJ=null;
+function tsnd(){snd=!snd;$("#snd").textContent=snd?"[ZVUK: ZAP]":"[ZVUK: VYP]";beep(660,.1)}
+function beep(f,d,t){if(!snd)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type=t||"square";o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function decrypt(el,t){let n=0;const ch="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%&";const iv=setInterval(()=>{n++;el.textContent=[...t].map((c,i)=>i<n/3?c:ch[Math.random()*ch.length|0]).join("");if(n/3>=t.length){clearInterval(iv);el.textContent=t}},50)}
+function post(){
+  const kb=$("#kbox"),ke=$("#kt"); kb.hidden=!(S.t0&&S.k);
+  if(ke.dataset.cur!==(S.k||"")){ke.dataset.cur=S.k||"";ke.textContent=S.k||""}
+  const st=$("#st");
+  if(st){const t=L[S.lv].st,k=S.role+S.lv,lv=S.lv;
+    if(S.ty===k)st.textContent=t;
+    else if(tk===k)st.textContent=ty;
+    else{tk=k;ty="";
+      job({text:t,ms:STORY_MS,valid:()=>S.role+S.lv===k&&!S.res,set:x=>{ty=x;const e=$("#st");if(e)e.textContent=x},
+           done:()=>{S.ty=k;save();say(INTRO[lv])}})}
+    if(S.ty!==k)st.onclick=()=>{if(curJ&&!curJ.kora&&curJ.fin)curJ.fin()}}
+  const cc=$("#cc");
+  if(cc&&dk!==S.pass+S.lv){dk=S.pass+S.lv;decrypt(cc,cc.dataset.c);beep(660,.1);setTimeout(()=>beep(880,.2),120)}
+  const cv=$("#sim"); if(cv)sim(cv,+cv.dataset.i);
+}
+// animace vyřešené úlohy (přehrává se dokola)
+function sim(cv,i){
+  const c=cv.getContext("2d"),W=520,H=180,G="#3dff7a",A="#ffb000",D=[6,6,4,6][i],T=[126,9.5,4,40][i],t0=performance.now();
+  const f=ts=>{
+    const u=Math.max(0,(ts-t0)/1000), t=Math.min(T,u*T/D); let txt="",lab="";
+    c.clearRect(0,0,W,H);c.lineWidth=2;c.strokeStyle=G;c.fillStyle=G;c.font="14px monospace";
+    const dot=(x,y,r,col)=>{c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill()};
+    if(i===0){const X=k=>30+k/54*460,a=.2*t,b=t<30?0:.3*(t-30);
+      c.beginPath();c.moveTo(30,115);c.lineTo(490,115);c.stroke();
+      dot(X(a),115,8,G);dot(X(54-b),115,8,A);
+      c.fillStyle=G;c.fillText("A",24,145);c.fillText("B",484,145);
+      lab=t<30?"Dron B ještě čeká na start...":"Oba drony letí k sobě";txt=`t = ${t.toFixed(0)} s`}
+    else if(i===1){const r=t<1.5,s=r?40*t:60+40*(t-1.5)-2.5*(t-1.5)**2,v=r?40:Math.max(0,40-5*(t-1.5)),X=30+s/220*400;
+      c.beginPath();c.moveTo(30,125);c.lineTo(450,125);c.stroke();c.fillRect(450,75,8,60);
+      c.fillStyle=r?A:G;c.fillRect(X-34,100,34,20);
+      c.fillStyle=G;lab=r?"REAKČNÍ DOBA – loď ještě nebrzdí":"BRZDĚNÍ";txt=`t = ${t.toFixed(1)} s   v = ${v.toFixed(0)} m/s   s = ${s.toFixed(0)} m`}
+    else if(i===2){const a=t*2*Math.PI,x=260+60*Math.cos(a),y=108+60*Math.sin(a);
+      c.beginPath();c.arc(260,108,60,0,7);c.stroke();c.beginPath();c.moveTo(260,108);c.lineTo(x,y);c.stroke();
+      dot(x,y,9,A);lab="Centrifuga";txt=`f = 1 Hz = 60 RPM`}
+    else{const y=160-130*t/40,h=Math.asin(.6);
+      c.fillStyle="rgba(61,255,122,.12)";c.fillRect(0,30,W,130);c.fillStyle=G;
+      for(let k=0;k<5;k++)c.fillText("→",(k*110+t*14)%W,60+(k%3)*30);
+      c.setLineDash([5,5]);c.beginPath();c.moveTo(260,160);c.lineTo(260,30);c.stroke();c.setLineDash([]);
+      c.fillStyle=A;c.fillRect(250,26,20,6);
+      c.save();c.translate(260,y);c.rotate(-h);c.fillStyle=A;c.beginPath();c.moveTo(0,-13);c.lineTo(9,10);c.lineTo(-9,10);c.fill();c.restore();
+      c.fillStyle=G;lab="Člun míří šikmo proti proudu";txt=`t = ${t.toFixed(0)} s`}
+    c.fillStyle=G;c.fillText(txt,10,18);c.fillStyle=A;c.fillText(lab,10,H-8);
+    if(u<D)raf=requestAnimationFrame(f)};
+  raf=requestAnimationFrame(f);
+}
+render(); setInterval(tick,250);
+</script>
+</body>
+</html>
