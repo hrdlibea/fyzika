@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fyzika vlnění: Odrazy a Interference</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+        }
+        /* Stylování posuvníků */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        input[type=range]:focus { outline: none; }
+        
+        /* Checkbox styly */
+        .checkbox-custom:checked + div {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .checkbox-custom:checked + div svg {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col items-center py-8 px-4">
+
+    <div class="max-w-4xl w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-slate-200">
+        
+        <!-- Hlavička a Navigace (Záložky) -->
+        <div class="bg-slate-800 text-white">
+            <div class="p-6 text-center pb-4">
+                <h1 class="text-3xl font-bold">Simulace Vlnění</h1>
+                <p class="text-slate-300 text-sm mt-2">Interaktivní modelování šíření, odrazů a skládání vln</p>
+            </div>
+            
+            <div class="flex">
+                <button id="tabBtn1" class="flex-1 py-3 px-4 text-center font-semibold text-sm transition-colors border-b-4 border-blue-500 bg-slate-700 text-white" onclick="switchTab(1)">
+                    1. Odrazy a šíření vln
+                </button>
+                <button id="tabBtn2" class="flex-1 py-3 px-4 text-center font-semibold text-sm transition-colors border-b-4 border-transparent hover:bg-slate-700 text-slate-400" onclick="switchTab(2)">
+                    2. Vznik stojatého vlnění
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- ZÁLOŽKA 1: ODRAZY A ŠÍŘENÍ                 -->
+        <!-- ========================================== -->
+        <div id="tabContent1" class="block">
+            <!-- Plátno -->
+            <div class="p-6 flex justify-center border-b border-slate-100 bg-slate-50">
+                <canvas id="canvas1" width="800" height="400" class="border border-slate-300 shadow-sm rounded"></canvas>
+            </div>
+
+            <!-- Ovládací panel -->
+            <div class="p-6 bg-white space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Levé ovládání -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">Režim simulace:</label>
+                            <select id="simMode" class="w-full bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5">
+                                <option value="1">1. Puls na pevném konci (Odraz s obrácením fáze)</option>
+                                <option value="2">2. Puls na volném konci (Odraz se zachováním fáze)</option>
+                                <option value="3">3. Stojaté vlnění (Ideální odraz vlny)</option>
+                                <option value="4">4. Vlnění s útlumem (Částečný odraz 60%)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="flex gap-2">
+                            <button id="btnPlay1" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                                Spustit
+                            </button>
+                            <button id="btnReset1" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition-colors">
+                                Reset
+                            </button>
+                        </div>
+
+                        <label class="flex items-center cursor-pointer mt-4">
+                            <input type="checkbox" id="chkDecomp" class="hidden checkbox-custom">
+                            <div class="w-5 h-5 border-2 border-slate-400 rounded-md flex items-center justify-center mr-2 transition-colors">
+                                <svg class="w-3 h-3 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <span class="text-sm font-medium text-slate-700">Zobrazit rozklad vln (dopadající / odražená)</span>
+                        </label>
+                    </div>
+
+                    <!-- Pravé ovládání (Posuvníky) -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="text-sm font-semibold text-slate-700">Rychlost / Frekvence</label>
+                                <span id="valSpeed" class="text-xs font-bold text-blue-600">50%</span>
+                            </div>
+                            <input type="range" id="sliderSpeed" min="0.1" max="2.0" step="0.1" value="1.0">
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <label class="text-sm font-semibold text-slate-700">Amplituda</label>
+                                <span id="valAmp" class="text-xs font-bold text-blue-600">60 px</span>
+                            </div>
+                            <input type="range" id="sliderAmp" min="20" max="120" step="5" value="60">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Legenda -->
+                <div class="flex flex-wrap gap-4 pt-4 border-t border-slate-100 text-xs font-medium text-slate-600" id="legend1" style="display: none;">
+                    <div class="flex items-center gap-2"><div class="w-4 h-0.5 bg-green-500 border-t-2 border-dashed border-green-500"></div> Dopadající vlna</div>
+                    <div class="flex items-center gap-2"><div class="w-4 h-0.5 bg-red-500 border-t-2 border-dashed border-red-500"></div> Odražená vlna</div>
+                    <div class="flex items-center gap-2"><div class="w-4 h-1 bg-blue-500 rounded"></div> Výsledná vlna</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- ZÁLOŽKA 2: VZNIK STOJATÉHO VLNĚNÍ          -->
+        <!-- ========================================== -->
+        <div id="tabContent2" class="hidden">
+            <!-- Plátno -->
+            <div class="p-6 flex justify-center border-b border-slate-100 bg-slate-50">
+                <canvas id="canvas2" width="800" height="500" class="border border-slate-300 shadow-sm rounded"></canvas>
+            </div>
+
+            <!-- Ovládací panel -->
+            <div class="p-6 bg-white space-y-6">
+                <!-- Časová osa a přehrávání -->
+                <div class="flex items-center gap-4">
+                    <button id="btnPlay2" class="w-32 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex justify-center items-center">
+                        Spustit
+                    </button>
+                    
+                    <div class="flex-grow flex flex-col justify-center">
+                        <div class="flex justify-between text-xs font-medium text-slate-500 mb-1 px-1">
+                            <span>t = 0</span>
+                            <span>t = T</span>
+                            <span>t = 2T</span>
+                        </div>
+                        <input type="range" id="sliderTime2" min="0" max="4000" step="10" value="0">
+                        <div class="text-center text-sm font-semibold text-blue-600 mt-1" id="timeDisplay2">
+                            Čas: 0 ms
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tlačítka snímků -->
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Snímky podle obrázku:</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button class="snap-btn bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-1.5 px-4 rounded transition-colors" data-time="0">t = 0</button>
+                        <button class="snap-btn bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-1.5 px-4 rounded transition-colors" data-time="500">t = T/4</button>
+                        <button class="snap-btn bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-1.5 px-4 rounded transition-colors" data-time="1000">t = T/2</button>
+                        <button class="snap-btn bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-1.5 px-4 rounded transition-colors" data-time="1500">t = 3/4 T</button>
+                        <button class="snap-btn bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium py-1.5 px-4 rounded transition-colors" data-time="2000">t = T</button>
+                    </div>
+                </div>
+
+                <!-- Legenda -->
+                <div class="flex flex-wrap gap-6 pt-4 border-t border-slate-100 text-sm font-medium">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-1 bg-green-500 rounded"></div>
+                        <span>Vlna zleva (y₁)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-1 bg-blue-500 rounded"></div>
+                        <span>Vlna zprava (y₂)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-1.5 bg-red-500 rounded"></div>
+                        <span>Výsledné vlnění (y₁ + y₂)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT LOGIKA                          -->
+    <!-- ========================================== -->
+    <script>
+        // === Globální stav a navigace ===
+        let activeTab = 1;
+        let globalLastTime = 0;
+
+        function switchTab(tabIndex) {
+            activeTab = tabIndex;
+            
+            const btn1 = document.getElementById('tabBtn1');
+            const btn2 = document.getElementById('tabBtn2');
+            const content1 = document.getElementById('tabContent1');
+            const content2 = document.getElementById('tabContent2');
+
+            if (tabIndex === 1) {
+                // Přepnutí UI na záložku 1
+                btn1.classList.replace('border-transparent', 'border-blue-500');
+                btn1.classList.replace('text-slate-400', 'text-white');
+                btn1.classList.replace('hover:bg-slate-700', 'bg-slate-700');
+                
+                btn2.classList.replace('border-blue-500', 'border-transparent');
+                btn2.classList.replace('text-white', 'text-slate-400');
+                btn2.classList.replace('bg-slate-700', 'hover:bg-slate-700');
+                
+                content1.classList.replace('hidden', 'block');
+                content2.classList.replace('block', 'hidden');
+                
+                // Zajistit okamžité překreslení
+                drawTab1();
+            } else {
+                // Přepnutí UI na záložku 2
+                btn2.classList.replace('border-transparent', 'border-blue-500');
+                btn2.classList.replace('text-slate-400', 'text-white');
+                btn2.classList.replace('hover:bg-slate-700', 'bg-slate-700');
+                
+                btn1.classList.replace('border-blue-500', 'border-transparent');
+                btn1.classList.replace('text-white', 'text-slate-400');
+                btn1.classList.replace('bg-slate-700', 'hover:bg-slate-700');
+                
+                content2.classList.replace('hidden', 'block');
+                content1.classList.replace('block', 'hidden');
+                
+                drawTab2();
+            }
+        }
+
+        // ==========================================
+        // === ZÁLOŽKA 1: LOGIKA A VYKRESLOVÁNÍ   ===
+        // ==========================================
+        const ctx1 = document.getElementById('canvas1').getContext('2d');
+        const W1 = 800; // šířka canvasu 1
+        const H1 = 400; // výška canvasu 1
+        const midY1 = H1 / 2;
+        const L = 650;  // pozice konce (odrazové stěny)
+
+        let isPlaying1 = false;
+        let time1 = 0;
+        let speedMult = 1.0;
+        let maxAmp1 = 60;
+        let mode1 = 1;
+        let showDecomp = false;
+
+        const pulseWidth = 50; 
+        const waveK = 2 * Math.PI / 150; // vlnové číslo pro kontinuální vlnu
+
+        // UI prvky pro záložku 1
+        const btnPlay1 = document.getElementById('btnPlay1');
+        const btnReset1 = document.getElementById('btnReset1');
+        const sliderSpeed = document.getElementById('sliderSpeed');
+        const sliderAmp = document.getElementById('sliderAmp');
+        const chkDecomp = document.getElementById('chkDecomp');
+        const simMode = document.getElementById('simMode');
+        const legend1 = document.getElementById('legend1');
+        const valSpeed = document.getElementById('valSpeed');
+        const valAmp = document.getElementById('valAmp');
+
+        btnPlay1.addEventListener('click', () => {
+            isPlaying1 = !isPlaying1;
+            btnPlay1.textContent = isPlaying1 ? "Pozastavit" : "Spustit";
+            if(isPlaying1) {
+                btnPlay1.classList.replace('bg-blue-600', 'bg-yellow-500');
+                btnPlay1.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-600');
+            } else {
+                btnPlay1.classList.replace('bg-yellow-500', 'bg-blue-600');
+                btnPlay1.classList.replace('hover:bg-yellow-600', 'hover:bg-blue-700');
+            }
+        });
+
+        btnReset1.addEventListener('click', () => {
+            time1 = 0;
+            if(!isPlaying1) drawTab1();
+        });
+
+        sliderSpeed.addEventListener('input', (e) => {
+            speedMult = parseFloat(e.target.value);
+            valSpeed.textContent = Math.round(speedMult * 50) + "%";
+        });
+
+        sliderAmp.addEventListener('input', (e) => {
+            maxAmp1 = parseFloat(e.target.value);
+            valAmp.textContent = maxAmp1 + " px";
+            if(!isPlaying1) drawTab1();
+        });
+
+        chkDecomp.addEventListener('change', (e) => {
+            showDecomp = e.target.checked;
+            legend1.style.display = showDecomp ? 'flex' : 'none';
+            if(!isPlaying1) drawTab1();
+        });
+
+        simMode.addEventListener('change', (e) => {
+            mode1 = parseInt(e.target.value);
+            time1 = 0;
+            if(!isPlaying1) drawTab1();
+        });
+
+        function gausPulse(x, t, v) {
+            // Počáteční pozice mimo obrazovku vlevo (-100)
+            let center = -100 + v * t; 
+            return maxAmp1 * Math.exp(-Math.pow((x - center) / pulseWidth, 2));
+        }
+
+        function drawTab1() {
+            ctx1.clearRect(0, 0, W1, H1);
+            
+            // Osa struny (rovnovážná poloha)
+            ctx1.beginPath();
+            ctx1.moveTo(0, midY1);
+            ctx1.lineTo(L, midY1);
+            ctx1.strokeStyle = '#94a3b8';
+            ctx1.lineWidth = 1;
+            ctx1.stroke();
+
+            let v = 0.3 * speedMult; // Základní rychlost posuvu pro pulsy
+            let omega = 0.005 * speedMult * (150); // Rychlost pro harmonické vlnění
+            
+            ctx1.lineJoin = 'round';
+            
+            let y_sum_last_point = 0;
+
+            // Vykreslení křivek bod po bodu (pouze do bodu L)
+            ctx1.beginPath(); // Výsledná vlna
+            const pathInc = new Path2D(); // Dopadající vlna
+            const pathRef = new Path2D(); // Odražená vlna
+
+            for (let x = 0; x <= L; x++) {
+                let yInc = 0;
+                let yRef = 0;
+
+                if (mode1 === 1) { // Puls - Pevný konec
+                    yInc = gausPulse(x, time1, v);
+                    // Odražená vlna z bodu 2L s opačnou fází
+                    let centerRef = 2 * L - (-100 + v * time1);
+                    yRef = -maxAmp1 * Math.exp(-Math.pow((x - centerRef) / pulseWidth, 2));
+                } 
+                else if (mode1 === 2) { // Puls - Volný konec
+                    yInc = gausPulse(x, time1, v);
+                    let centerRef = 2 * L - (-100 + v * time1);
+                    yRef = maxAmp1 * Math.exp(-Math.pow((x - centerRef) / pulseWidth, 2)); // Stejná fáze
+                }
+                else if (mode1 === 3) { // Stojaté ideální
+                    yInc = maxAmp1 * Math.sin(waveK * x - omega * time1 * 0.01);
+                    // Fázové posunutí tak, aby v bodě L byl uzel (součet = 0)
+                    yRef = -maxAmp1 * Math.sin(waveK * x + omega * time1 * 0.01 - 2 * waveK * L);
+                }
+                else if (mode1 === 4) { // Vlnění s útlumem (Částečný odraz 40% ztráta)
+                    yInc = maxAmp1 * Math.sin(waveK * x - omega * time1 * 0.01);
+                    yRef = -maxAmp1 * 0.6 * Math.sin(waveK * x + omega * time1 * 0.01 - 2 * waveK * L);
+                }
+
+                let ySum = yInc + yRef;
+                if(x === L) y_sum_last_point = ySum;
+
+                let pySum = midY1 - ySum;
+                let pyInc = midY1 - yInc;
+                let pyRef = midY1 - yRef;
+
+                if (x === 0) {
+                    ctx1.moveTo(x, pySum);
+                    pathInc.moveTo(x, pyInc);
+                    pathRef.moveTo(x, pyRef);
+                } else {
+                    ctx1.lineTo(x, pySum);
+                    pathInc.lineTo(x, pyInc);
+                    pathRef.lineTo(x, pyRef);
+                }
+            }
+
+            // Vykreslení dopadající a odražené vlny (pokud je zaškrtnuto)
+            if (showDecomp) {
+                ctx1.save();
+                ctx1.setLineDash([5, 5]);
+                
+                // Dopadající (zelená)
+                ctx1.strokeStyle = '#22c55e';
+                ctx1.lineWidth = 2;
+                ctx1.stroke(pathInc);
+                
+                // Odražená (červená)
+                ctx1.strokeStyle = '#ef4444';
+                ctx1.lineWidth = 2;
+                ctx1.stroke(pathRef);
+                
+                ctx1.restore();
+            }
+
+            // Vykreslení výsledné vlny (modrá)
+            ctx1.strokeStyle = '#3b82f6';
+            ctx1.lineWidth = 3.5;
+            ctx1.stroke();
+
+            // Vykreslení konce (Zdi / Tyče)
+            if (mode1 === 1 || mode1 === 3 || mode1 === 4) {
+                // Pevný konec (zeď + bod)
+                ctx1.fillStyle = '#64748b'; // tmavě šedá
+                ctx1.fillRect(L, midY1 - 80, 40, 160);
+                
+                ctx1.beginPath();
+                ctx1.arc(L, midY1, 6, 0, 2*Math.PI);
+                ctx1.fillStyle = '#1e293b';
+                ctx1.fill();
+            } else if (mode1 === 2) {
+                // Volný konec (tyč a posuvný kroužek)
+                ctx1.fillStyle = '#cbd5e1'; // světle šedá tyč
+                ctx1.fillRect(L - 2, midY1 - 100, 4, 200);
+                
+                // Kroužek pohybující se podle y_sum_last_point
+                ctx1.beginPath();
+                ctx1.arc(L, midY1 - y_sum_last_point, 8, 0, 2*Math.PI);
+                ctx1.strokeStyle = '#1e293b';
+                ctx1.lineWidth = 3;
+                ctx1.fillStyle = '#ffffff';
+                ctx1.fill();
+                ctx1.stroke();
+            }
+        }
+
+
+        // ==========================================
+        // === ZÁLOŽKA 2: LOGIKA A VYKRESLOVÁNÍ   ===
+        // ==========================================
+        const canvas2 = document.getElementById('canvas2');
+        const ctx2 = canvas2.getContext('2d');
+        const btnPlay2 = document.getElementById('btnPlay2');
+        const sliderTime2 = document.getElementById('sliderTime2');
+        const timeDisplay2 = document.getElementById('timeDisplay2');
+        const snapBtns = document.querySelectorAll('.snap-btn');
+
+        let isPlaying2 = false;
+        let time2 = 0;
+        
+        // Fyzikální konstanty pro tab 2
+        const A2 = 60;
+        const lambda2 = 160;
+        const T2 = 2000;
+        const k2 = (2 * Math.PI) / lambda2;
+        const omega2 = (2 * Math.PI) / T2;
+        const v2 = lambda2 / T2;
+        
+        const M2 = canvas2.width / 2;
+        const midY2 = canvas2.height / 2;
+
+        btnPlay2.addEventListener('click', () => {
+            isPlaying2 = !isPlaying2;
+            if (isPlaying2) {
+                btnPlay2.textContent = "Pozastavit";
+                btnPlay2.classList.replace('bg-blue-600', 'bg-yellow-500');
+                btnPlay2.classList.replace('hover:bg-blue-700', 'hover:bg-yellow-600');
+            } else {
+                btnPlay2.textContent = "Spustit";
+                btnPlay2.classList.replace('bg-yellow-500', 'bg-blue-600');
+                btnPlay2.classList.replace('hover:bg-yellow-600', 'hover:bg-blue-700');
+            }
+        });
+
+        sliderTime2.addEventListener('input', (e) => {
+            time2 = parseFloat(e.target.value);
+            updateUI2();
+            if (!isPlaying2) drawTab2();
+        });
+
+        snapBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                isPlaying2 = false;
+                btnPlay2.textContent = "Spustit";
+                btnPlay2.classList.remove('bg-yellow-500', 'hover:bg-yellow-600');
+                btnPlay2.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                
+                time2 = parseFloat(e.target.dataset.time);
+                updateUI2();
+                drawTab2();
+            });
+        });
+
+        function updateUI2() {
+            sliderTime2.value = time2;
+            let fraction = "";
+            if (Math.abs(time2 - 500) < 15) fraction = " (T/4)";
+            else if (Math.abs(time2 - 1000) < 15) fraction = " (T/2)";
+            else if (Math.abs(time2 - 1500) < 15) fraction = " (3/4 T)";
+            else if (Math.abs(time2 - 2000) < 15) fraction = " (T)";
+            else if (Math.abs(time2 - 0) < 15) fraction = " (0)";
+            
+            timeDisplay2.textContent = `Čas: ${Math.round(time2)} ms${fraction}`;
+        }
+
+        function drawTab2() {
+            ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+
+            // Osy
+            ctx2.beginPath();
+            ctx2.moveTo(0, midY2);
+            ctx2.lineTo(canvas2.width, midY2);
+            ctx2.strokeStyle = '#000000';
+            ctx2.lineWidth = 1.5;
+            ctx2.stroke();
+
+            // Bod M (svislá tečkovaná čára)
+            ctx2.beginPath();
+            ctx2.setLineDash([4, 4]);
+            ctx2.moveTo(M2, 20);
+            ctx2.lineTo(M2, canvas2.height - 20);
+            ctx2.strokeStyle = '#000000';
+            ctx2.lineWidth = 1;
+            ctx2.stroke();
+            ctx2.setLineDash([]); 
+
+            ctx2.fillStyle = '#000000';
+            ctx2.font = 'bold 16px Arial';
+            ctx2.fillText('M', M2 + 8, midY2 + 20);
+            ctx2.fillText('y', 10, 20);
+            ctx2.fillText('x', canvas2.width - 20, midY2 - 10);
+            
+            // Zelená vlna (y1) zleva
+            ctx2.beginPath();
+            ctx2.strokeStyle = '#22c55e';
+            ctx2.lineWidth = 2;
+            let greenStarted = false;
+            for (let x = 0; x <= canvas2.width; x++) {
+                if (x <= M2 + v2 * time2) { 
+                    let y1 = A2 * Math.sin(k2 * (x - M2) - omega2 * time2);
+                    let py = midY2 - y1; 
+                    if (!greenStarted) { ctx2.moveTo(x, py); greenStarted = true; } 
+                    else { ctx2.lineTo(x, py); }
+                }
+            }
+            ctx2.stroke();
+
+            // Modrá vlna (y2) zprava
+            ctx2.beginPath();
+            ctx2.strokeStyle = '#3b82f6';
+            ctx2.lineWidth = 2;
+            let blueStarted = false;
+            for (let x = 0; x <= canvas2.width; x++) {
+                if (x >= M2 - v2 * time2) { 
+                    let y2 = -A2 * Math.sin(k2 * (x - M2) + omega2 * time2);
+                    let py = midY2 - y2;
+                    if (!blueStarted) { ctx2.moveTo(x, py); blueStarted = true; } 
+                    else { ctx2.lineTo(x, py); }
+                }
+            }
+            ctx2.stroke();
+
+            // Červená výsledná vlna
+            ctx2.beginPath();
+            ctx2.strokeStyle = '#ef4444';
+            ctx2.lineWidth = 3.5;
+            let redStarted = false;
+            for (let x = 0; x <= canvas2.width; x++) {
+                if (x >= M2 - v2 * time2 && x <= M2 + v2 * time2) { 
+                    let y1 = A2 * Math.sin(k2 * (x - M2) - omega2 * time2);
+                    let y2 = -A2 * Math.sin(k2 * (x - M2) + omega2 * time2);
+                    let y = y1 + y2;
+                    let py = midY2 - y;
+                    
+                    if (!redStarted) { ctx2.moveTo(x, py); redStarted = true; } 
+                    else { ctx2.lineTo(x, py); }
+                }
+            }
+            ctx2.stroke();
+        }
+
+        // ==========================================
+        // === HLAVNÍ ANIMAČNÍ SMYČKA             ===
+        // ==========================================
+        function globalLoop(timestamp) {
+            if (!globalLastTime) globalLastTime = timestamp;
+            const dt = timestamp - globalLastTime;
+            globalLastTime = timestamp;
+
+            if (activeTab === 1 && isPlaying1) {
+                time1 += dt;
+                // Prevence přetečení času u pulsů (restart pulsu, pokud dojede moc daleko)
+                if ((mode1 === 1 || mode1 === 2) && time1 > 4000 / speedMult) {
+                    time1 = 0; 
+                }
+                drawTab1();
+            } 
+            else if (activeTab === 2 && isPlaying2) {
+                time2 += dt;
+                if (time2 > 4000) { time2 = 0; } // Zacyklení do 2T pro plynulost
+                updateUI2();
+                drawTab2();
+            }
+
+            requestAnimationFrame(globalLoop);
+        }
+
+        // Inicializace prvního vykreslení
+        drawTab1();
+        updateUI2();
+        drawTab2();
+        requestAnimationFrame(globalLoop);
+
+    </script>
+</body>
+</html>
